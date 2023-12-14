@@ -17,7 +17,8 @@ const EmployeeSchema = new mongoose.Schema({
         pin:{type:String},
     }},
     image:{type:String},
-    currentApplication: {type:Array},
+    currentApplications: {type:Array},
+    isActive:{type:Boolean, default:true}
 })
 
 const Employee = mongoose.model("Employee", EmployeeSchema);

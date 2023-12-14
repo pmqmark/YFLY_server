@@ -1,14 +1,16 @@
 const Admin = require("../models/AdminModel")
 const Employee = require("../models/EmployeeModel")
-const Student = require("../models/StudentModel")
+const Student = require("../models/StudentModel");
+const OtpModel = require("../models/OtpModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const emailGenerator = require("../utils/EmailGenerator");
 const authCtrl = {};
 
-const expiryAccessToken = "5m";
+const expiryAccessToken = "1h";
 const expiryRefreshToken = "30d";
 
-const maxAgeAccessCookie = 1000*60*5;
+const maxAgeAccessCookie = 1000*60*60;
 const maxAgeRefreshCookie = 1000*60*60*24*30;
 
 //Create Access Token;
@@ -23,13 +25,32 @@ const generateRefreshToken = (userInfo) => {
     return jwt.sign(userInfo, process.env.REFRESH_TOKEN_SECRET, { expiresIn: expiryRefreshToken })
 }
 
+//Create OTP
+const generateOTP = ()=>{
+    const digits = "0123456789";
+
+    let otp = "";
+
+    for(let i=0; i < 6; i++){
+        otp += digits[Math.floor(Math.random() * 10)]
+    }
+
+    return otp;
+}
+
 // Authentication method for Admin/Employee/Student;
 
 authCtrl.Login = async (req, res) => {
-    const { email } = req.body;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const email  = req.body.email;
+    console.log("email",email)
 
+    if(!email || !req.body.password) return res.status(400).json({msg:"Invalid Email or Password"})
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ msg: "Invalid Email format" });
+
+    const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
+    if(!passwordRegex.test(req.body.password)) return res.status(400).json({ msg: "Invalid password format" });
 
     try {
         const admin = await Admin.findOne({ email }).lean();
@@ -96,6 +117,55 @@ authCtrl.Logout = async (req, res) => {
     res.clearCookie("refresh_token");
 
     res.sendStatus(204)
+}
+
+authCtrl.SendOTP = async(req,res)=>{
+    const email = req.body.email;
+    console.log(email)
+
+    const student = await Student.findOne({email}).lean();
+    const employee = await Employee.findOne({email}).lean();
+
+    if(!student && !employee){
+        return res.status(404).json({msg:"You are not registered with us"})
+    }
+
+    const otpExisting = await OtpModel.findOne({email})
+    if(otpExisting){
+        await OtpModel.findByIdAndDelete(otpExisting._id);
+    }
+
+    try {
+        const OTP = generateOTP(); 
+
+        const otpDoc = new OtpModel({email,otp:OTP})
+        await otpDoc.save();
+
+        const link = "https://realify.online";
+
+        const result = emailGenerator(link, email);
+
+        if(!result) return res.status(500).json({msg:"Couldn't sent OTP"})
+
+        res.status(200).json({msg:'Otp Sent successfully'})
+
+    }catch(error){
+        console.error(error);
+        res.status(500).json({msg:'Something went wrong'})
+    }
+}
+
+authCtrl.VerifyOTP = async(req,res)=>{
+    const otp = req.body.otp;
+    const email = req.body.email;
+    const validOtp = await OtpModel.findOne({email,otp})
+    if(!validOtp){
+        return res.status(403).json({msg:'Invalid Otp number'})
+    }
+
+    await OtpModel.findByIdAndDelete(validOtp._id)
+    
+    return res.status(200).json({msg:"Email verified"});
 }
 
 module.exports = authCtrl;
