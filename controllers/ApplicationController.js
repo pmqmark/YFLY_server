@@ -8,7 +8,7 @@ const applicationCtrl = {};
 //Create Application;
 
 applicationCtrl.CreateApplication = async(req,res)=>{
-    const {studentId,university,course,
+    const {studentId,university,program,
         intake,country,creator,steps,
         documents} = req.body;
     
@@ -28,7 +28,7 @@ applicationCtrl.CreateApplication = async(req,res)=>{
 
         const newDocument = new Application({
             studentId : new ObjectId(studentId),
-            university,course,
+            university,program,
             intake,country,
             creator : new ObjectId(creator),
             steps,
@@ -51,11 +51,100 @@ applicationCtrl.CreateApplication = async(req,res)=>{
 
 //Get All Applications;
 applicationCtrl.GetAllApplications = async(req,res)=>{
-    try {
-        const allApplications = await Application.find();
-        console.log(allApplications);
+    // filters
+    const country = req.query.country;
+    const intake = req.query.intake;
+    const createdDateQuery = req.query.created_date;
+    const year = req.query.year;
+    const status = req.query.status;
+    const university = req.query.university;
+    const ackNmbr = req.query.ack_nmbr;
+    const program = req.query.program;
+    const studentName = req.query.student_name;
 
-        res.status(200).json(allApplications);
+    // Paginators
+    const page = req.query.page;
+    const entries = req.query.entries;
+
+    let filters = {};
+
+    if(country){filters.country = {$regex : new RegExp(country, 'i')}};
+
+    if(intake){filters.intake = {$regex : new RegExp(intake, 'i')}};
+
+    if(createdDateQuery){
+        filters.createdAt = new Date(`${createdDateQuery}T00:00:00.000+05:30`)
+    };
+
+    if(year){
+        const yearStart = new Date(`${year}-01-01T00:00:00.000+05:30`);
+        const yearEnd = new Date(`${parseInt(year) + 1}-01-01T00:00:00.000+05:30`);
+        filters.createdAt = {$gte:yearStart, $lt:yearEnd};
+    };
+
+    if(status){filters.status = {$regex : new RegExp(status, 'i')}};
+
+    if(university){filters.university = {$regex : new RegExp(university, 'i')}};
+
+    if(ackNmbr){filters._id = new ObjectId(ackNmbr)};
+
+    if(program){filters.program = {$regex : new RegExp(program, 'i')}};
+
+    console.log(filters);
+
+    try {
+        const allApplications = await Application.aggregate([
+                    {
+                        $lookup: {
+                        from: "students",
+                        localField: "studentId",
+                        foreignField: "_id",
+                        as: "studentDetails"
+                        }
+                    },
+                    {
+                        $unwind: "$studentDetails"
+                    },
+                    
+                    {
+                        $match: {
+                        ...filters,
+                        "studentDetails.name": studentName ? { $regex: new RegExp(studentName, 'i') } : { $exists: true }
+                        }
+                    },
+                    {
+                        $project: {
+                            "_id": 1,
+                            "studentId": 1,
+                            "university": 1,
+                            "intake": 1,
+                            "country": 1,
+                            "creator": 1,
+                            "steps": 1,
+                            "documents": 1,
+                            "status":1,
+                            "createdAt": 1,
+                            "updatedAt": 1,
+                            "program": 1,
+                            "studentDetails.name":1,
+                        }
+                    },
+                ]);
+
+                
+        console.log("allaplctns",allApplications);
+
+        let result;
+
+        if(page){
+            if(entries){
+                result = allApplications.splice(((page-1)*entries),(page*entries))
+            }else{
+                result = allApplications.splice(((page-1)*10),(page*10))
+            }
+        }
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({msg:"Something went wrong"})
     }

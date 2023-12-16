@@ -141,7 +141,7 @@ studentCtrl.UpdateStudent = async(req,res)=>{
 }
 
 
-//Change Password;
+//Change Password; 
 
 studentCtrl.ChangePassword = async(req,res)=>{
     const stdtId = req.body.studentId;
@@ -172,7 +172,7 @@ studentCtrl.ChangePassword = async(req,res)=>{
 }
 
 
-
+// Uppload files
 
 
 module.exports = studentCtrl;

@@ -142,7 +142,7 @@ employeeCtrl.UpdateEmployee = async(req,res)=>{
     }
 }
 
-//Change password;
+//Change password; 
 
 employeeCtrl.ChangePassword = async(req,res)=>{
     const empId = req.body.employeeId;
