@@ -10,6 +10,7 @@ const adminRouter = require("./routes/AdminRoutes");
 const employeeRouter = require("./routes/EmployeeRoutes");
 const studentRouter = require("./routes/StudentRoutes");
 const applicationRouter = require("./routes/ApplicationRoutes");
+const commentRouter = require("./routes/CommentRoutes");
 
 const PORT = process.env.PORT || 8800;
 const ClientURL = process.env.ClientURL;
@@ -28,6 +29,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/employee", employeeRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/application", applicationRouter);
+app.use("/api/comment", commentRouter);
 
 app.use("*", (req,res)=>{
     res.sendStatus(404);

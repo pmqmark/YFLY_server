@@ -11,4 +11,6 @@ router.put("/update", authMiddleware, adminCheckMiddleware, employeeCtrl.UpdateE
 router.put("/change-password", authMiddleware, employeeCtrl.ChangePassword);
 router.put("/deactivate", authMiddleware, adminCheckMiddleware, employeeCtrl.DeactivateEmployee)
 
+router.get("/get-assigned-works/:id", authMiddleware, employeeCtrl.GetAssignedWorks)
+
 module.exports = router;

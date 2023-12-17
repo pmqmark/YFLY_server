@@ -1,6 +1,7 @@
 const Employee = require("../models/EmployeeModel")
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
+const Application = require("../models/ApplicationModel");
 const ObjectId = mongoose.Types.ObjectId;
 const employeeCtrl = {};
 
@@ -8,7 +9,7 @@ const employeeCtrl = {};
 
 employeeCtrl.CreateEmployee = async(req,res)=>{
 
-    const {name,email,password,education,
+    const {name,email,password,phone,education,
         department,birthDate,address,image,
         currentApplications} = req.body;
 
@@ -24,6 +25,9 @@ employeeCtrl.CreateEmployee = async(req,res)=>{
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ msg: "Invalid Email format" });
 
+    const phoneNumberRegex = /^\d{10}$/;
+    if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
+
     const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
     if(!passwordRegex.test(password)) return res.status(400).json({ msg: "Invalid password format" });
 
@@ -37,7 +41,7 @@ employeeCtrl.CreateEmployee = async(req,res)=>{
         const hashedPassword = await bcrypt.hash(password,salt);
 
         const newDocument = new Employee({
-            name,email,
+            name,email,phone,
             password:hashedPassword,
             education,department,
             birthDate,address,image,
@@ -111,6 +115,11 @@ employeeCtrl.UpdateEmployee = async(req,res)=>{
     if(req.body.email){
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(req.body.email)) return res.status(400).json({ msg: "Invalid Email format" });
+    }
+
+    if(req.body.phone){
+        const phoneNumberRegex = /^\d{10}$/;
+        if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
     }
 
     let {employeeId, ...updates} = req.body;
@@ -195,6 +204,65 @@ employeeCtrl.DeactivateEmployee = async(req,res)=>{
     }catch(error){
         res.status(500).json({msg:"Something went wrong"})
     }
+}
+
+
+//Get Assigned Works for an Employee;
+
+employeeCtrl.GetAssignedWorks = async(req,res)=>{
+    const employeeId = req.params.id;
+
+    if(!employeeId) return res.status(400).json({msg:"Invalid Employee Id"});
+
+    try {
+        const employee = await Employee.findById(employeeId);
+        if(!employee) return res.status(404).json({msg:"Employee Not Found"});
+
+        const currentApplications = employee.currentApplications;
+
+        const works = await Application.aggregate([
+            {
+                $lookup:{
+                    from:"students",
+                    localField:"studentId",
+                    foreignField:"_id",
+                    as:"studentDetails"
+                }
+            },
+            {
+                $unwind:"$studentDetails"
+            },
+            {
+                $match:{
+                    _id : {$in:[...currentApplications]}
+                }
+            },
+            {
+                $project:{
+                    _id:1,
+                    "university":1,
+                    "country":1,
+                    "program":1,
+                    "intake":1,
+                    "status":1,
+                    "studentDetails._id":1,
+                    "studentDetails.name":1,
+                    "studentDetails.email":1,
+                    "studentDetails.phone":1,
+                    "studentDetails.age":1,
+                    "studentDetails.address":1,
+                    "studentDetails.image":1,
+                }
+            }
+        ]);
+
+        console.log("works",works);
+
+        res.status(200).json(works)
+    } catch (error) {
+        res.status(500).json({msg:"Something went wrong"})
+    }
+
 }
 
 

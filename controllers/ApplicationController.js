@@ -2,6 +2,8 @@ const Application = require("../models/ApplicationModel")
 const bcrypt = require("bcrypt");
 const Student = require("../models/StudentModel");
 const mongoose = require("mongoose");
+const Comment = require("../models/CommentModel");
+const Employee = require("../models/EmployeeModel");
 const ObjectId = mongoose.Types.ObjectId;
 const applicationCtrl = {};
 
@@ -10,7 +12,7 @@ const applicationCtrl = {};
 applicationCtrl.CreateApplication = async(req,res)=>{
     const {studentId,university,program,
         intake,country,creator,steps,
-        documents} = req.body;
+        documents,assignee} = req.body;
     
     console.log("reqBody",req.body)
     
@@ -32,7 +34,8 @@ applicationCtrl.CreateApplication = async(req,res)=>{
             intake,country,
             creator : new ObjectId(creator),
             steps,
-            documents
+            documents,
+            assignee : new ObjectId(assignee)
         });
 
         const application = await newDocument.save();
@@ -93,6 +96,7 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
     console.log(filters);
 
     try {
+
         const allApplications = await Application.aggregate([
                     {
                         $lookup: {
@@ -105,7 +109,31 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                     {
                         $unwind: "$studentDetails"
                     },
-                    
+                    {
+                        $lookup: {
+                            from: "admins",
+                            localField: "creator",
+                            foreignField: "_id",
+                            as: "creatorDetails"
+                        }
+                    },
+                    {
+                        $unwind: "$creatorDetails"
+                    },
+                    {
+                        $lookup: {
+                        from: "employees",
+                        localField: "assignee",
+                        foreignField: "_id",
+                        as: "assigneeDetails"
+                        }
+                    },
+                    {
+                        $unwind: {
+                          path: "$assigneeDetails",
+                          preserveNullAndEmptyArrays: true, // Include documents with no assignee
+                        },
+                    },
                     {
                         $match: {
                         ...filters,
@@ -126,13 +154,17 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                             "createdAt": 1,
                             "updatedAt": 1,
                             "program": 1,
+                            "assignee":1,
                             "studentDetails.name":1,
+                            "assigneeDetails.name":1,
+                            "assigneeDetails.phone":1,
+                            "creatorDetails.name":1,
                         }
                     },
                 ]);
 
                 
-        console.log("allaplctns",allApplications);
+        console.log("all-applications",allApplications);
 
         let result;
 
@@ -207,7 +239,17 @@ applicationCtrl.DeleteApplication = async(req,res)=>{
         const application = await Application.findById(applicationId);
         if(!application) return res.status(404).json({msg:"Application doesn't exist"});
 
-        await Application.findByIdAndDelete(applicationId);
+        await Application.findByIdAndDelete(applicationId)
+        .then(async()=>{
+            await Employee.findByIdAndUpdate(application.assignee,{
+                $pull:{currentApplications : application._id}
+            });
+
+            await Comment.deleteMany({applicationId});
+        })
+        .catch((error)=>{
+            console.log(error)
+        })
 
         res.sendStatus(204);
     } catch (error) {

@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const Admin = require("../models/AdminModel");
 const mongoose = require("mongoose");
 const Application = require("../models/ApplicationModel");
+const Employee = require("../models/EmployeeModel");
 const ObjectId = mongoose.Types.ObjectId;
 const adminCtrl = {};
 
@@ -135,22 +136,22 @@ adminCtrl.GetApplicationMetrics = async(req,res)=>{
     console.log(filters);
 
     try {
-        const allApplications = await Application.find(filters);
+        const allApplications = await Application.find(filters).countDocuments();
         console.log("all", allApplications);
 
-        const currentApplications = await Application.find({...filters, status: "processing"});
+        const currentApplications = await Application.find({...filters, status: "processing"}).countDocuments();
         console.log("processing", currentApplications);
 
-        const completedApplications = await Application.find({...filters, status: "completed"});
+        const completedApplications = await Application.find({...filters, status: "completed"}).countDocuments();
         console.log("completed", completedApplications);
 
-        const defferredApplications = await Application.find({...filters, status: "deffered"});
+        const defferredApplications = await Application.find({...filters, status: "deffered"}).countDocuments();
         console.log("deffered", defferredApplications);
 
-        const cancelledApplications = await Application.find({...filters, status: "cancelled"});
+        const cancelledApplications = await Application.find({...filters, status: "cancelled"}).countDocuments();
         console.log("cancelled",cancelledApplications);
 
-        const notEnrolledApplications = await Application.find({...filters, status: "not-enrolled"});
+        const notEnrolledApplications = await Application.find({...filters, status: "not-enrolled"}).countDocuments();
         console.log("not-enrolled",notEnrolledApplications);
 
 
@@ -170,10 +171,74 @@ adminCtrl.GetApplicationMetrics = async(req,res)=>{
 
 
 // Assign work to an Employee; 
+// ** warning: same work can be assigned many times;
+adminCtrl.AssignWork = async(req,res)=>{
+    const {applicationId, employeeId} = req.body;
+
+    if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
+        return res.status(400).json({msg:"Invalid Id format"});
+    };
+
+    try{
+        const application = await Application.findById(applicationId);
+        if(!application) return res.status(404).json({msg:"Application not found"});
+
+        const employee = await Employee.findById(employeeId);
+        if(!employee) return res.status(404).json({msg:"Employee not found"});
+
+        const prevAssignee = application.assignee;
+
+        if(prevAssignee){
+            await Employee.findByIdAndUpdate(prevAssignee,{
+                $pull:{currentApplications : application._id}
+            });
+        }
+
+        // ==> Update the assignee field of Application;
+        await Application.findByIdAndUpdate(applicationId,{
+            $set:{assignee: employee._id}
+        })
+
+        // ==> Push applicationId to the currentApplications of employee;
+        await Employee.findByIdAndUpdate(employeeId,{
+            $push:{currentApplications: application._id} 
+        })
+
+        res.status(200).json({msg:"Work Assigned"})
+    }catch(error){
+        res.status(500).json({msg:"Something went wrong"})
+    }
+}
 
 
+// Remove Assignee from a work;
+adminCtrl.RemoveAssignee = async(req,res)=>{
+    const {applicationId} = req.body;
+    if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
+        return res.status(400).json({msg:"Invalid Id format"});
+    };
 
-// Track a Student;
+    try {
+        const application = await Application.findById(applicationId);
+        if(!application) return res.status(404).json({msg:"Application not found"});
+        if(!application.assignee) return res.status(400).json({msg:"No Assignee to remove"})
+
+        const assignee = await Employee.findById(application.assignee);
+        if(!assignee) return res.status(404).json({msg:"assignee not found"});
+
+        await Employee.findByIdAndUpdate(assignee,{
+            $pull:{ currentApplications: application._id}
+        });
+
+        await Application.findByIdAndUpdate(applicationId,{
+            $unset:{assignee:""}
+        })
+
+        res.status(200).json({msg:"Assignee removed"})
+    } catch (error) {
+        res.status(500).json({msg:"Something went wrong"});
+    }
+}
 
 
 module.exports = adminCtrl;

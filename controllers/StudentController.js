@@ -24,6 +24,9 @@ studentCtrl.CreateStudent = async(req,res)=>{
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ msg: "Invalid Email format" });
 
+    const phoneNumberRegex = /^\d{10}$/;
+    if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
+
     const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
     if(!passwordRegex.test(password)) return res.status(400).json({ msg: "Invalid password format" });
 
@@ -111,6 +114,11 @@ studentCtrl.UpdateStudent = async(req,res)=>{
         if (!emailRegex.test(req.body.email)) return res.status(400).json({ msg: "Invalid Email format" });
     }
 
+    if(req.body.phone){
+        const phoneNumberRegex = /^\d{10}$/;
+        if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
+    }
+
     let {studentId, ...updates} = req.body;
 
     if(req.body.password){
@@ -172,7 +180,7 @@ studentCtrl.ChangePassword = async(req,res)=>{
 }
 
 
-// Uppload files
+// Upload files to Firebase;
 
 
 module.exports = studentCtrl;
