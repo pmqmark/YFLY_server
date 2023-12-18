@@ -1,15 +1,23 @@
 const mongoose = require("mongoose");
 
 const ApplicationSchema = new mongoose.Schema({
-    studentId:{type:mongoose.Types.ObjectId},
+    studentId:{type:mongoose.Types.ObjectId,unique:true,required:true},
     university:{type:String},
-    course:{type:String},
+    program:{type:String},
     intake:{type:String},
-    country:{type:String},
-    creator:{type:mongoose.Types.ObjectId},
-    steps:{type:Array},
-    documents:{type:Array},
+    country:{type:String,required:true},
+    creator:{type:mongoose.Types.ObjectId,required:true},
+    steps:{type:Array, default:[]},
+    documents:{type:Array, default:[]},
+    status:{type:String,
+            default:"pending",
+            enum:["pending", "processing", "completed", "enrolled", "cancelled", "deffered", "not-enrolled"]
+           },
+    assignee:{type:mongoose.Types.ObjectId},
+    createdAt:{type:Date, default:Date.now},
+    updatedAt:{type:Date, default:Date.now},
 });
+
 
 const Application = mongoose.model("Application", ApplicationSchema);
 

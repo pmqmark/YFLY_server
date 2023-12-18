@@ -3,10 +3,10 @@ const mongoose = require("mongoose");
 const StudentSchema = new mongoose.Schema({
     name: {type:String,unique:true},
     email: {type:String,unique:true},
+    phone:{type:Number},
     password:{type:String},
-    phone:{type:String},
     birthDate: {type:Date},
-    age: {type:String},
+    age: {type:Number},
     qualification: {type:String},
     address: {type:{
         houseName:{type:String},
@@ -16,7 +16,7 @@ const StudentSchema = new mongoose.Schema({
     }},
     role: {type:String, default:"student", required:true},
     image:{type:String},
-    application:{type:mongoose.Types.ObjectId},
+    applicationId:{type:mongoose.Types.ObjectId},
 })
 
 const Student = mongoose.model("Student", StudentSchema);
