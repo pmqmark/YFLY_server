@@ -7,8 +7,21 @@ const ApplicationSchema = new mongoose.Schema({
     intake:{type:String},
     country:{type:String,required:true},
     creator:{type:mongoose.Types.ObjectId,required:true},
-    steps:{type:Array, default:[]},
-    documents:{type:Array, default:[]},
+    steps:{type:[
+                    {
+                        name:{type:String},
+                        status:{type:String},
+                        assignee:{type:mongoose.Types.ObjectId}
+                    }
+                ],
+         default:[]},
+    documents:{type:[
+                        {
+                            name:{type:String},
+                            location:{type:String}
+                        }
+                    ],
+         default:[]},
     status:{type:String,
             default:"pending",
             enum:["pending", "processing", "completed", "enrolled", "cancelled", "deffered", "not-enrolled"]
