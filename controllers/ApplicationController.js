@@ -174,6 +174,8 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
             }else{
                 result = allApplications.splice(((page-1)*10),(page*10))
             }
+        }else{
+            result = allApplications;
         }
 
         res.status(200).json(result);

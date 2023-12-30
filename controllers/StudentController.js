@@ -30,8 +30,8 @@ studentCtrl.CreateStudent = async(req,res)=>{
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ msg: "Invalid Email format" });
 
-    const phoneNumberRegex = /^\d{10}$/;
-    if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
+    // const phoneNumberRegex = /^\d{10}$/;
+    // if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
 
     const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
     if(!passwordRegex.test(password)) return res.status(400).json({ msg: "Invalid password format" });

@@ -1,12 +1,11 @@
 const mongoose = require("mongoose");
 
 const StudentSchema = new mongoose.Schema({
-    name: {type:String,unique:true},
+    name: {type:String,required:true},
     email: {type:String,unique:true},
     phone:{type:Number},
     password:{type:String},
     birthDate: {type:Date},
-    age: {type:Number},
     qualification: {type:String},
     address: {type:{
         houseName:{type:String},

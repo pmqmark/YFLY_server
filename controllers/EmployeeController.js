@@ -31,8 +31,8 @@ employeeCtrl.CreateEmployee = async(req,res)=>{
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ msg: "Invalid Email format" });
 
-    const phoneNumberRegex = /^\d{10}$/;
-    if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
+    // const phoneNumberRegex = /^\d{10}$/;
+    // if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
 
     const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
     if(!passwordRegex.test(password)) return res.status(400).json({ msg: "Invalid password format" });
@@ -68,16 +68,16 @@ employeeCtrl.CreateEmployee = async(req,res)=>{
 
 employeeCtrl.GetAllEmployees = async(req,res)=>{
     const department = req.query.department;
-
+    console.log("department", department)
     // Paginators
     const page = req.query.page;
     const entries = req.query.entries;
     
     try {
         const allEmployees = await Employee.find({isActive:true,department},{password: 0});
-        console.log(allEmployees);
+        console.log("allEmployeess",allEmployees);
 
-        let result;
+        let result
 
         if(page){
             if(entries){
@@ -85,8 +85,10 @@ employeeCtrl.GetAllEmployees = async(req,res)=>{
             }else{
                 result = allEmployees.splice(((page-1)*10),(page*10))
             }
+        }else{
+            result = allEmployees;
         }
-    
+        
         res.status(200).json(result);
         
     } catch (error) {
