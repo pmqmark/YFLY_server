@@ -124,11 +124,12 @@ employeeCtrl.GetEmployee = async(req,res)=>{
                     foreignField:"_id",
                     as:"applicationList"
                 }
-            }
+            },
+            
         ])
-        console.log("withapplications",withApplications);
+        console.log("withapplications",withApplications[0]);
 
-        res.status(200).json(withApplications);
+        res.status(200).json(withApplications[0]);
     } catch (error) {
         console.log("error",error)
         res.status(500).json({msg:"Something went wrong"});

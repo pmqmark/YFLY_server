@@ -193,9 +193,15 @@ applicationCtrl.GetApplication = async(req,res)=>{
     }
 
     try{
-        const application = await Application.findById(applicationId);
-        console.log(application);
-        res.status(200).json(application);
+        let application = await Application.findById(applicationId).lean();
+        if(!application) return res.status(404).json({msg:"Application doesn't exist"});
+
+        const student = await Student.findById(application.studentId);
+        if(!student) return res.status(404).json({msg:"Student doesn't exist"});
+
+        const result = {...application,"studentName":student.name}
+        console.log("application with student name",result);
+        res.status(200).json(result);
     }catch(error){
         res.status(500).json({msg:"Something went wrong"})
     }
