@@ -11,14 +11,16 @@ const applicationCtrl = {};
 
 applicationCtrl.CreateApplication = async(req,res)=>{
     const {studentId,university,program,
-        intake,country,creator,steps,
-        documents,assignee} = req.body;
+        intake,country,creator,steps,assignee} = req.body;
     
     console.log("reqBody",req.body)
     
     if(!(typeof studentId === 'string' || ObjectId.isValid(studentId))){
         return res.status(400).json({msg:"Invalid Id format"});
     }
+
+    const stepsElement = {name:steps.name, status:steps.status, assignee: new ObjectId(steps.assignee)};
+
 
     try {
         const student = await Student.findById(studentId);
@@ -33,8 +35,7 @@ applicationCtrl.CreateApplication = async(req,res)=>{
             university,program,
             intake,country,
             creator : new ObjectId(creator),
-            steps,
-            documents,
+            steps:[stepsElement],
             assignee : new ObjectId(assignee)
         });
 
@@ -209,8 +210,10 @@ applicationCtrl.GetApplication = async(req,res)=>{
 
 //Update Application;
 applicationCtrl.UpdateApplication = async (req,res)=>{
-    const {applicationId, ...updates} = req.body;
+    const {applicationId, steps, ...updates} = req.body;
     console.log(req.body);
+
+    const stepsElement = {name:steps.name, status:steps.status, assignee: new ObjectId(steps.assignee)};
 
     if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
         return res.status(400).json({msg:"Invalid Id format"});
@@ -221,9 +224,9 @@ applicationCtrl.UpdateApplication = async (req,res)=>{
         console.log(application);
         if(!application) return res.status(404).json({msg:"Application not found"});
 
-        const updatedApplication = await Application.findByIdAndUpdate(applicationId,{
-            $set: {...updates, updatedAt:Date.now()}
-        },{new:true});
+        const updatedApplication = await Application.findByIdAndUpdate(applicationId,
+            {$set: {...updates, updatedAt:Date.now()}, $push:{steps:stepsElement}},
+            {new:true});
 
         console.log(updatedApplication);
 
@@ -268,21 +271,21 @@ applicationCtrl.DeleteApplication = async(req,res)=>{
 
 // Upload files to AWS S3 Bucket 2nd part => Update doc with uploaded urls;
 
-applicationCtrl.UploadDocs = async(req,res)=>{
+applicationCtrl.UploadDoc = async(req,res)=>{
     const applicationId = req.params.id;
+    const {docName} = req.body;
+
     console.log("*applicationId*",applicationId)
     if(!applicationId) return res.status(500).json({msg:"Invalid applicationId"})
 
     console.log("req.body", req.body)
-    console.log("req.files",req.files)
+    console.log("req.file",req.file)
 
-    const newDocuments = req.files.map((file)=>(
-        {name:file.originalname, location:file.location}
-    ))
+    const newDocument = {name:docName, location: req.file.location};
 
     try {
         await Application.findByIdAndUpdate(applicationId,{
-            $push:{documents:{$each:newDocuments}}
+            $push:{documents:newDocument}
         })
         
         res.status(200).json({msg:"Documents uploaded successfully"})

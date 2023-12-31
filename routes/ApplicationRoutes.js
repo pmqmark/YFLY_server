@@ -11,7 +11,7 @@ router.get("/get/:id", authMiddleware, applicationCtrl.GetApplication);
 router.put("/update", authMiddleware, applicationCtrl.UpdateApplication);
 router.delete("/delete/:id", authMiddleware, adminCheckMiddleware, applicationCtrl.DeleteApplication);
 
-router.post("/upload-documents/:id", authMiddleware, upload.array('documents', 10), applicationCtrl.UploadDocs)
+router.post("/upload-documents/:id", authMiddleware, upload.single('document'), applicationCtrl.UploadDoc)
 
 
 module.exports = router;
