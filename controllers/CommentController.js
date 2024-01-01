@@ -6,7 +6,8 @@ const commentCtrl = {};
 // Get all Comments of an Application;
 commentCtrl.GetComments = async(req,res)=>{
     const applicationId = req.params.id;
-
+     
+    console.log(applicationId);
     if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
         return res.status(400).json({msg:"Invalid Id format"});
     }
@@ -33,6 +34,10 @@ commentCtrl.GetComments = async(req,res)=>{
                     "commentorDetails.name":1,
                     "comment":1,
                     "createdAt":1
+                }
+            },{
+                $sort:{
+                    "_id":-1
                 }
             }
         ])
@@ -73,7 +78,7 @@ commentCtrl.AddComment = async(req,res)=>{
         const savedComment = await newComment.save();
         console.log(savedComment);
 
-        res.status(200).json({msg:"Comment Added"});
+        res.status(200).json({data:savedComment, msg:"Comment Added"});
 
     } catch (error) {
         res.status(500).json({msg:"Something went wrong"})
