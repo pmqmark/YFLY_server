@@ -7,20 +7,57 @@ const Employee = require("../models/EmployeeModel");
 const ObjectId = mongoose.Types.ObjectId;
 const applicationCtrl = {};
 
+const partneredData = require("../datas/partnered.json");
+const nonPartneredData = require("../datas/non-partnered.json");
+
 //Create Application;
 
 applicationCtrl.CreateApplication = async(req,res)=>{
     const {studentId,university,program,
-        intake,country,creator,steps,assignee} = req.body;
+        intake,country,creator,assignee,partnership} = req.body;
     
-    console.log("reqBody",req.body)
-    
+    console.log("reqBody",req.body);
+
     if(!(typeof studentId === 'string' || ObjectId.isValid(studentId))){
         return res.status(400).json({msg:"Invalid Id format"});
     }
 
-    const stepsElement = {name:steps.name, status:steps.status, assignee: new ObjectId(steps.assignee)};
+    let steps = [];
+    if(partnership === "partnered"){
+        steps = partneredData.filter((step)=>{
+            return (step.country === "common" || step.country === country)
+        })
+    }
+    else if(partnership === "non-partnered"){
+        steps = [...nonPartneredData]
+    }
 
+    let schemaObject = {
+        studentId : new ObjectId(studentId),
+        university,program,
+        intake,country,
+        creator : new ObjectId(creator),
+        steps
+    }
+    
+    if((typeof assignee==="string" || ObjectId.isValid(assignee))){
+       steps = steps.map((step)=>{
+                if(step._id === 1){
+                    return {...step, status:"pending", assignee : new ObjectId(assignee)}
+                }
+
+                return step
+               });
+
+       schemaObject = {
+            studentId : new ObjectId(studentId),
+            university,program,
+            intake,country,
+            creator : new ObjectId(creator),
+            steps,
+            assignee: new ObjectId(assignee)
+        }   
+    }
 
     try {
         const student = await Student.findById(studentId);
@@ -30,14 +67,7 @@ applicationCtrl.CreateApplication = async(req,res)=>{
         const alreadyExists = await Application.findOne({studentId: new ObjectId(studentId)});
         if(alreadyExists) return res.status(400).json({msg:"Application already exists"});
 
-        const newDocument = new Application({
-            studentId : new ObjectId(studentId),
-            university,program,
-            intake,country,
-            creator : new ObjectId(creator),
-            steps:[stepsElement],
-            assignee : new ObjectId(assignee)
-        });
+        const newDocument = new Application(schemaObject);
 
         const application = await newDocument.save();
         console.log("application",application);
@@ -210,22 +240,36 @@ applicationCtrl.GetApplication = async(req,res)=>{
 
 //Update Application;
 applicationCtrl.UpdateApplication = async (req,res)=>{
-    const {applicationId, steps, ...updates} = req.body;
+    const {applicationId, stepNumber, stepStatus, stepAssignee, ...updates} = req.body;
     console.log(req.body);
-
-    const stepsElement = {name:steps.name, status:steps.status, assignee: new ObjectId(steps.assignee)};
 
     if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
         return res.status(400).json({msg:"Invalid Id format"});
     }
-
+    
     try {
         const application = await Application.findById(applicationId);
         console.log(application);
         if(!application) return res.status(404).json({msg:"Application not found"});
+        
+        if(stepNumber){
+            if(stepStatus){
+                await Application.findOneAndUpdate({_id:applicationId, 'steps':{$elemMatch:{_id:stepNumber}}},
+                {$set:{'steps.$.status':stepStatus}},{new:true}
+                )
+            }
+    
+            if(stepAssignee){
+                await Application.findOneAndUpdate({_id:applicationId, 'steps':{$elemMatch:{_id:stepNumber}}},
+                {$set:{'steps.$.assignee':stepAssignee}},{new:true}
+                )
+    
+                updates.assignee = stepAssignee;
+            }
+        }
 
         const updatedApplication = await Application.findByIdAndUpdate(applicationId,
-            {$set: {...updates, updatedAt:Date.now()}, $push:{steps:stepsElement}},
+            {$set: {...updates, updatedAt:Date.now()}},
             {new:true});
 
         console.log(updatedApplication);
