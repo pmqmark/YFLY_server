@@ -5,7 +5,21 @@ const mongoose = require("mongoose");
 const Comment = require("../models/CommentModel");
 const Employee = require("../models/EmployeeModel");
 const ObjectId = mongoose.Types.ObjectId;
+const {S3Client, GetObjectCommand, DeleteObjectCommand} = require("@aws-sdk/client-s3");
 const applicationCtrl = {};
+
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+const region = process.env.S3_REGION;
+const Bucket = process.env.S3_BUCKET;
+
+const s3Client = new S3Client({
+    region: region,
+    credentials:{
+        accessKeyId:accessKeyId,
+        secretAccessKey:secretAccessKey
+    }
+})
 
 const partneredData = require("../datas/partnered.json");
 const nonPartneredData = require("../datas/non-partnered.json");
@@ -312,20 +326,59 @@ applicationCtrl.DeleteApplication = async(req,res)=>{
     }
 }
 
+applicationCtrl.CheckDocName  = async(req,res,next)=>{
+    const applicationId = req.params.id;
+
+    // const docName = req.query.name;
+    const docName = req.params.name;
+    console.log("docName",docName);
+
+    const docNameRegex = new RegExp(docName,'i')
+
+    try {
+        const exists = await Application.findOne({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}})
+        console.log("exists",exists)
+    
+        if(exists){
+            console.log("Document already exists")
+            return res.status(400).json({msg:"The Document already exists"})
+        }else{
+            // res.status(200).json({msg:"Dummy Documents uploaded successfully"})
+            next()
+        }
+
+    } catch (error) {
+        res.status(500).json({msg:"Something went wrong"})
+    }
+
+}
 
 // Upload files to AWS S3 Bucket 2nd part => Update doc with uploaded urls;
 
 applicationCtrl.UploadDoc = async(req,res)=>{
     const applicationId = req.params.id;
-    const {docName} = req.body;
-
+    
     console.log("*applicationId*",applicationId)
     if(!applicationId) return res.status(500).json({msg:"Invalid applicationId"})
-
+    
     console.log("req.body", req.body)
     console.log("req.file",req.file)
+    if(!req.file) return res.status(400).json({msg:"File not present"})
 
-    const newDocument = {name:docName, location: req.file.location};
+    
+    const docName = req.params.name;
+    console.log("docName",docName);
+    const docNameRegex = new RegExp(docName,'i')
+
+
+    const exists = await Application.findOne({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}})
+
+    if(exists){
+        console.log("Document already exists")
+        return res.status(400).json({msg:"The Document already exists"})
+    }
+
+    const newDocument = {name:docName, key: req.file.key, location: req.file.location};
 
     try {
         await Application.findByIdAndUpdate(applicationId,{
@@ -337,6 +390,182 @@ applicationCtrl.UploadDoc = async(req,res)=>{
         console.log(error)
         res.status(500).json({msg:"Documents upload  failed"})
     }
+
+}
+
+applicationCtrl.GetDocument = async(req,res)=>{
+    const applicationId = req.params.id;
+    
+    console.log("*applicationId*",applicationId)
+    if(!applicationId) return res.status(500).json({msg:"Invalid applicationId"})
+    
+    console.log("req.body", req.body)
+    console.log("req.file",req.file)
+    
+    // const {docName} = req.body;
+    const docName = req.params.name;
+    console.log("docName",docName);
+    const docNameRegex = new RegExp(docName,'i')
+
+
+    const exists = await Application.findOne({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}})
+    if(!exists) return res.status(404).json({msg:"Document doesn't exists"})
+
+    const document = exists.documents.find((doc)=>{
+        return docNameRegex.test(doc.name)
+    })
+
+    console.log(document)
+
+    if(!document) return res.status(404).json({msg:"document not found"});
+    
+    const ObjectKey = document.key;
+    console.log(ObjectKey);
+    if(!ObjectKey) return res.status(404).json({msg:"The Key not found"});
+
+    const params = {
+        Bucket,
+        Key:ObjectKey
+    }
+
+    const getObjectCommand = new GetObjectCommand(params)
+
+    try {
+        const data = await s3Client.send(getObjectCommand);
+
+        res.setHeader('Content-Type', 'image/jpeg'); 
+        res.setHeader('Content-Disposition', `attachment; filename=${document.name}`);
+
+        // res.setHeader('Content-Type', 'application/pdf');
+        // res.setHeader('Content-Disposition', 'attachment; filename=your-pdf-name.pdf');
+
+        data.Body.pipe(res)
+
+        // res.status(200).send(fileData)
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({msg:"Something went wrong"})
+    }
+
+}
+
+applicationCtrl.DeleteDocument = async(req,res)=>{
+    const applicationId = req.params.id;
+    
+    console.log("*applicationId*",applicationId)
+    if(!applicationId) return res.status(500).json({msg:"Invalid applicationId"})
+    
+    console.log("req.body", req.body)
+    console.log("req.file",req.file)
+    
+    // const {docName} = req.body;
+    const docName = req.params.name;
+    console.log("docName",docName);
+    const docNameRegex = new RegExp(docName,'i')
+
+
+    const exists = await Application.findOne({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}});
+    if(!exists) return res.status(404).json({msg:"Document doesn't exists"})
+
+    const document = exists.documents.find((doc)=>{
+        return docNameRegex.test(doc.name)
+    })
+
+    console.log(document)
+
+    if(!document) return res.status(404).json({msg:"document not found"});
+
+    const ObjectKey = document.key;
+    console.log(ObjectKey);
+
+    const params = {
+        Bucket,
+        Key:ObjectKey
+    }
+
+    const deleteObjectCommand = new DeleteObjectCommand(params)
+
+    try {
+        const data = await s3Client.send(deleteObjectCommand);
+
+        console.log("deleted data", data)
+
+        const updatedAppDoc= await Application.findOneAndUpdate({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}},
+            {$pull:{documents:{name:docNameRegex}}},
+            {new:true}
+        )
+
+        res.status(200).json({msg:"Document deleted Successfully", updatedAppDoc})
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({msg:"Something went wrong"})
+    }
+
+}
+
+applicationCtrl.UpdateDocument = async(req,res)=>{
+    const applicationId = req.params.id;
+    
+    console.log("*applicationId*",applicationId)
+    if(!applicationId) return res.status(500).json({msg:"Invalid applicationId"})
+    
+    // console.log("req.body", req.body)
+    console.log("req.file",req.file)
+
+    if(!req.file) return res.status(400).json({msg:"File not present"})
+    
+    // const {docName} = req.body;
+    const docName = req.params.name;
+    console.log("docName",docName);
+    const docNameRegex = new RegExp(docName,'i')
+
+
+    const exists = await Application.findOne({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}});
+    if(!exists) return res.status(404).json({msg:"Document doesn't exists"})
+
+    const document = exists.documents.find((doc)=>{
+        return docNameRegex.test(doc.name)
+    })
+
+    console.log(document)
+
+    if(!document) return res.status(404).json({msg:"document not found"});
+
+    const ObjectKey = document.key;
+    console.log(ObjectKey);
+
+    const params = {
+        Bucket,
+        Key:ObjectKey
+    }
+
+    const deleteObjectCommand = new DeleteObjectCommand(params);
+
+    const newDocument = {name:docName, key: req.file.key, location: req.file.location};
+
+    try {
+
+        if(ObjectKey){
+            const data = await s3Client.send(deleteObjectCommand);
+            console.log("deleted data", data)
+        }
+
+
+        await Application.findOneAndUpdate({_id:applicationId, 'documents':{$elemMatch:{name:docNameRegex}}},
+            {$pull:{documents:{name:docNameRegex}}}
+        )
+
+        const updatedAppDoc = await Application.findByIdAndUpdate(applicationId,
+            {$push:{documents:newDocument}},
+            {new:true}
+        );
+
+        res.status(200).json({msg:"Document Updated Successfully", updatedAppDoc})
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({msg:"Something went wrong"})
+    }
+
 
 }
 

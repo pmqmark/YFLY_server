@@ -19,6 +19,7 @@ const ApplicationSchema = new mongoose.Schema({
     documents:{type:[
                         {
                             name:{type:String},
+                            key:{type:String},
                             location:{type:String}
                         }
                     ],
