@@ -187,6 +187,14 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                         }
                     },
                     {
+                        $addFields:{
+                            "studentName":"$studentDetails.name",
+                            "assigneeName":"$assigneeDetails.name",
+                            "assigneePhone":"$assigneeDetails.phone",
+                            "creatorName":"$creatorDetails.name"
+                        }
+                    },
+                    {
                         $project: {
                             "_id": 1,
                             "studentId": 1,
@@ -201,10 +209,11 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                             "updatedAt": 1,
                             "program": 1,
                             "assignee":1,
-                            "studentDetails.name":1,
-                            "assigneeDetails.name":1,
-                            "assigneeDetails.phone":1,
-                            "creatorDetails.name":1,
+                            "studentName":1,
+                            "assigneeName":1,
+                            "assigneePhone":1,
+                            "creatorName":1,
+                            
                         }
                     },
                 ]);
