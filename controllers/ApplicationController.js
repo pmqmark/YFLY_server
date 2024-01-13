@@ -256,9 +256,9 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
 
         if(page){
             if(entries){
-                result = allApplications.splice(((page-1)*entries),(page*entries))
+                result = allApplications.slice(((page-1)*entries),(page*entries))
             }else{
-                result = allApplications.splice(((page-1)*10),(page*10))
+                result = allApplications.slice(((page-1)*10),(page*10))
             }
         }else{
             result = allApplications;

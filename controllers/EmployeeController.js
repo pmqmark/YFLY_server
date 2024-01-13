@@ -103,9 +103,9 @@ employeeCtrl.GetAllEmployees = async(req,res)=>{
 
         if(page){
             if(entries){
-                result = allEmployees.splice(((page-1)*entries),(page*entries))
+                result = allEmployees.slice(((page-1)*entries),(page*entries))
             }else{
-                result = allEmployees.splice(((page-1)*10),(page*10))
+                result = allEmployees.slice(((page-1)*10),(page*10))
             }
         }else{
             result = allEmployees;

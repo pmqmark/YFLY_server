@@ -101,9 +101,9 @@ studentCtrl.GetAllStudents = async(req,res)=>{
 
         if(page){
             if(entries){
-                result = allStudents.splice(((page-1)*entries),(page*entries))
+                result = allStudents.slice(((page-1)*entries),(page*entries))
             }else{
-                result = allStudents.splice(((page-1)*10),(page*10))
+                result = allStudents.slice(((page-1)*10),(page*10))
             }
         }else{
             result = allStudents;
