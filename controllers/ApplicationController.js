@@ -467,6 +467,9 @@ applicationCtrl.DeleteApplication = async(req,res)=>{
 applicationCtrl.CheckDocName  = async(req,res,next)=>{
     const applicationId = req.params.id;
 
+    const application = await Application.findById(applicationId);
+    if(!application) return res.status(400).json({msg:"Application not found"})
+
     // const docName = req.query.name;
     const docName = req.params.name;
     console.log("docName",docName);
@@ -495,14 +498,13 @@ applicationCtrl.CheckDocName  = async(req,res,next)=>{
 
 applicationCtrl.UploadDoc = async(req,res)=>{
     const applicationId = req.params.id;
-    
+
     console.log("*applicationId*",applicationId)
     if(!applicationId) return res.status(500).json({msg:"Invalid applicationId"})
-    
-    console.log("req.body", req.body)
-    console.log("req.file",req.file)
+   
+    // console.log("req.body", req.body)
+    // console.log("req.file",req.file)
     if(!req.file) return res.status(400).json({msg:"File not present"})
-
     
     const docName = req.params.name;
     console.log("docName",docName);
