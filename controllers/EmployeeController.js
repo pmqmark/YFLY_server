@@ -424,5 +424,58 @@ employeeCtrl.GetMyProjectTasks = async(req,res)=>{
     }
 }
 
+employeeCtrl.WorkAssign = async(req,res)=>{
+    const {applicationId, employeeId,stepperId, stepNumber} = req.body;
+
+    console.log(applicationId, employeeId,stepperId, stepNumber)
+
+    if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
+        return res.status(400).json({msg:"Invalid Id format"});
+    };
+
+    if(!(typeof employeeId === 'string' || ObjectId.isValid(employeeId))){
+        return res.status(400).json({msg:"Invalid Id format"});
+    };
+
+    try {
+        const application = await Application.findById(applicationId);
+        if(!application) return res.status(404).json({msg:"Application not found"});
+
+        const employee = await Employee.findById(employeeId);
+        if(!employee) return res.status(404).json({msg:"Employee not found"});
+
+        //Update the assignee and status in that particular step
+        
+        const modifiedStepper =  await Stepper.findOneAndUpdate({_id:new ObjectId(stepperId), steps:{$elemMatch:{_id:stepNumber}}},
+            {$set:{'steps.$.assignee':employee._id,'steps.$.status':"pending"}}, {new:true}
+            );
+
+
+        const newWork = new Work({
+            applicationId:application._id,
+            stepperId: new ObjectId(stepperId),
+            studentId:application.studentId,
+            assignee:employee._id,
+            stepNumber,
+            stepStatus:"pending"
+        })
+
+        console.log("newWork",newWork)
+
+        const savedWork = await newWork.save();
+
+        await Employee.findByIdAndUpdate(employeeId,{
+            $push:{currentWorks: savedWork._id} 
+        });
+
+
+        res.status(200).json({msg:"Work Assigned",modifiedStepper})
+    } catch (error) {
+        res.status(500).json({msg:"Something went Wrong"})
+        
+    }
+}
+
+
 module.exports = employeeCtrl;
 
