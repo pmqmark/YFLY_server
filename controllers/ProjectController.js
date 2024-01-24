@@ -245,8 +245,16 @@ projectCtrl.AddTask = async(req,res)=>{
         })
 
         await Project.findByIdAndUpdate(project._id,{
-            $push:{tasks: task._id, members: employee._id}
+            $push:{tasks: task._id}
         })
+
+        const membersArray = project?.members;
+
+        if(!membersArray.includes(employee._id)){
+            await Project.findByIdAndUpdate(project._id,{
+                $push:{members: employee._id}
+            })
+        }
 
         const currentTasks = employee?.currentTasks;
 
