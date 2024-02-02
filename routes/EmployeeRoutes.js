@@ -11,7 +11,7 @@ router.get("/get-all", authMiddleware, employeeChecker, employeeCtrl.GetAllEmplo
 router.get("/get/:id", authMiddleware, employeeCtrl.GetEmployee);
 router.put("/update", authMiddleware, adminCheckMiddleware, upload.single('image'), employeeCtrl.UpdateEmployee)
 router.put("/change-password", authMiddleware,employeeChecker, employeeCtrl.ChangePassword);
-router.put("/deactivate", authMiddleware, adminCheckMiddleware, employeeCtrl.DeactivateEmployee)
+router.put("/deactivate/:id", authMiddleware, adminCheckMiddleware, employeeCtrl.DeactivateEmployee)
 
 // router.get("/get-assigned-works/:id", authMiddleware, employeeCtrl.GetAssignedWorks)
 router.get("/get-assigned-works/:id", authMiddleware, employeeChecker, employeeCtrl.RetrieveWorks)

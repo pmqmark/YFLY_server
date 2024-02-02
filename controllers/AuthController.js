@@ -41,8 +41,8 @@ authCtrl.Login = async (req, res) => {
         const emailCaseRegex = new RegExp(email, 'i')
 
         const admin = await Admin.findOne({ email: emailCaseRegex }).lean();
-        const employee = await Employee.findOne({ email: emailCaseRegex }).lean();
-        const student = await Student.findOne({ email: emailCaseRegex }).lean();
+        const employee = await Employee.findOne({ email: emailCaseRegex, isActive:true }).lean();
+        const student = await Student.findOne({ email: emailCaseRegex, isActive:true  }).lean();
 
         let user;
 

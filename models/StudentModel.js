@@ -16,6 +16,7 @@ const StudentSchema = new mongoose.Schema({
     role: {type:String, default:"student", required:true},
     image:{type:String},
     applicationId:{type:mongoose.Types.ObjectId},
+    isActive:{type:Boolean, default:true},
     office:{type:String}
     
 },{timestamps:true})

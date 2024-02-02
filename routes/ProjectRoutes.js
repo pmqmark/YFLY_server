@@ -14,7 +14,7 @@ router.delete("/delete/:id",authMiddleware,adminCheckMiddleware, projectCtrl.Del
 router.post("/add-task", authMiddleware,adminCheckMiddleware, projectCtrl.AddTask)
 router.get("/get-all-tasks/:id", authMiddleware,employeeChecker, projectCtrl.GetAllTasksOfAProject)
 router.delete("/delete-task/:id", authMiddleware,adminCheckMiddleware, projectCtrl.DeleteATask)
-router.put("/update-task", authMiddleware,adminCheckMiddleware, projectCtrl.UpdateTask)
+router.put("/update-task/:id", authMiddleware,employeeChecker, projectCtrl.UpdateTask)
 
 router.put("/update", authMiddleware, adminCheckMiddleware, projectCtrl.UpdateProject)
 

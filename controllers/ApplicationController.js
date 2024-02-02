@@ -29,7 +29,7 @@ const Stepper = require("../models/StepperModel");
 //Create Application;
 
 applicationCtrl.CreateApplication = async(req,res)=>{
-    const {studentId,uniBased,program,
+    const {studentId,uniBased,
         intake,country,creator,assignee} = req.body;
     
     console.log("reqBody",req.body);
@@ -38,14 +38,13 @@ applicationCtrl.CreateApplication = async(req,res)=>{
         return res.status(400).json({msg:"Invalid Id format"});
     }
 
-    // uniBased = [{university,partnership}] 
+    //typeof uniBased = [{program,university,partnership}] 
 
     let steppers = [];
 
 
     let schemaObject = {
         studentId : new ObjectId(studentId),
-        program,
         intake,
         country,
         creator : new ObjectId(creator),
@@ -100,6 +99,7 @@ applicationCtrl.CreateApplication = async(req,res)=>{
     
             const newStepper = new Stepper({
                 applicationId:application._id,
+                program: obj.program,
                 university: obj.university,
                 partnership: obj.partnership,
                 steps: currentSteps
@@ -153,6 +153,7 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
     const intake = req.query.intake;
     const startDateQuery = req.query.start_date;
     const endDateQuery = req.query.end_date;
+    const status = req.query.status;
 
     //search query;
     const searchQuery = req.query.search;
@@ -168,7 +169,6 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
         searchFilter = {$or:[
         {_id:(ObjectId.isValid(searchQuery) ? new ObjectId(searchQuery) : searchQuery)},
         {"studentDetails.name":{ $regex: new RegExp(searchQuery,"i")}},
-        {program:{ $regex: new RegExp(searchQuery,"i")}},
         {intake:{ $regex: new RegExp(searchQuery,"i")}},
         {country:{ $regex: new RegExp(searchQuery,"i")}},
     ]}}
@@ -176,6 +176,8 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
     if(country){filters.country = {$regex : new RegExp(country, 'i')}};
 
     if(intake){filters.intake = {$regex : new RegExp(intake, 'i')}};
+
+    if(status){filters.status = {$regex : new RegExp(status, 'i')}};
 
     if(startDateQuery && endDateQuery){
         const startDate = new Date(`${startDateQuery}T00:00:00.000+05:30`);
@@ -202,17 +204,6 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                     },
                     {
                         $lookup: {
-                            from: "admins",
-                            localField: "creator",
-                            foreignField: "_id",
-                            as: "creatorDetails"
-                        }
-                    },
-                    {
-                        $unwind: "$creatorDetails"
-                    },
-                    {
-                        $lookup: {
                         from: "employees",
                         localField: "assignee",
                         foreignField: "_id",
@@ -222,7 +213,7 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                     {
                         $unwind: {
                           path: "$assigneeDetails",
-                          preserveNullAndEmptyArrays: true, // Include documents with no assignee
+                          preserveNullAndEmptyArrays: true, // Includes documents with no assignee
                         },
                     },
                     {
@@ -235,7 +226,6 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                             "studentName":"$studentDetails.name",
                             "assigneeName":"$assigneeDetails.name",
                             "assigneePhone":"$assigneeDetails.phone",
-                            "creatorName":"$creatorDetails.name"
                         }
                     },
                     {
@@ -250,12 +240,10 @@ applicationCtrl.GetAllApplications = async(req,res)=>{
                             "status":1,
                             "createdAt": 1,
                             "updatedAt": 1,
-                            "program": 1,
                             "assignee":1,
                             "studentName":1,
                             "assigneeName":1,
                             "assigneePhone":1,
-                            "creatorName":1,
                             
                         }
                     },
@@ -332,7 +320,6 @@ applicationCtrl.GetApplication = async (req, res) => {
                 $project: {
                     _id: 1,
                     studentId:1,
-                    program:1,
                     intake:1,
                     country:1,
                     creator:1,
@@ -348,6 +335,8 @@ applicationCtrl.GetApplication = async (req, res) => {
             }
         ]);
 
+        console.log("result", result)
+
         if (!result.length) return res.status(404).json({ msg: "Application doesn't exist" });
 
         res.status(200).json(result[0]);
@@ -356,50 +345,8 @@ applicationCtrl.GetApplication = async (req, res) => {
     }
 };
 
-//Update Application;
-// applicationCtrl.UpdateApplication = async (req,res)=>{
-//     const {applicationId, stepNumber, stepStatus, stepAssignee, ...updates} = req.body;
-//     console.log(req.body);
 
-//     if(!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))){
-//         return res.status(400).json({msg:"Invalid Id format"});
-//     }
-    
-//     try {
-//         const application = await Application.findById(applicationId);
-//         console.log(application);
-//         if(!application) return res.status(404).json({msg:"Application not found"});
-        
-//         if(stepNumber){
-//             if(stepStatus){
-//                 await Application.findOneAndUpdate({_id:applicationId, 'steppers':{$elemMatch:{_id:stepNumber}}},
-//                 {$set:{'steppers.$.status':stepStatus}},{new:true}
-//                 )
-//             }
-    
-//             if(stepAssignee){
-//                 await Application.findOneAndUpdate({_id:applicationId, 'steppers':{$elemMatch:{_id:stepNumber}}},
-//                 {$set:{'steppers.$.assignee':stepAssignee}},{new:true}
-//                 )
-    
-//                 updates.assignee = stepAssignee;
-//             }
-//         }
-
-//         const updatedApplication = await Application.findByIdAndUpdate(applicationId,
-//             {$set: {...updates, updatedAt:Date.now()}},
-//             {new:true});
-
-//         console.log(updatedApplication);
-
-//         res.status(200).json({msg:"Application Updated"})
-        
-//     } catch (error) {
-//         res.status(500).json({msg:"Something went wrong"})
-//     }
-
-// }
-
+// Update Application;
 applicationCtrl.UpdateApplication = async (req,res)=>{
     const {applicationId, ...updates} = req.body;
     console.log(req.body);

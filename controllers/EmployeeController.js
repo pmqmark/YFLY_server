@@ -35,9 +35,6 @@ employeeCtrl.CreateEmployee = async(req,res)=>{
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ msg: "Invalid Email format" });
 
-    // const phoneNumberRegex = /^\d{10}$/;
-    // if(!phoneNumberRegex.test(phone)) return res.status(400).json({msg: "Invalid Phone number"});
-
     const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
     if(!passwordRegex.test(password)) return res.status(400).json({ msg: "Invalid password format" });
 
@@ -46,17 +43,21 @@ employeeCtrl.CreateEmployee = async(req,res)=>{
         return res.status(400).json({msg:"Employee already exists"})
     }
 
+    let createObj = {
+        name,email,phone,
+        education,department,
+        birthDate,
+        image,office
+    }
+
+    if(address){createObj.address = address}
+
     try{
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password,salt);
+        createObj.password = hashedPassword;
 
-        const newDocument = new Employee({
-            name,email,phone,
-            password:hashedPassword,
-            education,department,
-            birthDate,address,
-            image,office
-        });
+        const newDocument = new Employee(createObj);
 
         const savedDoc = await newDocument.save();
         console.log("Saved employee", savedDoc);
@@ -239,7 +240,7 @@ employeeCtrl.ChangePassword = async(req,res)=>{
 //Deacivate Employee;
 
 employeeCtrl.DeactivateEmployee = async(req,res)=>{
-    const empId = req.body.employeeId;
+    const empId = req.params.id;
     
     if(!(typeof empId === 'string' || ObjectId.isValid(empId))){
         return res.status(400).json({msg:"Invalid Id format"});
@@ -288,6 +289,17 @@ employeeCtrl.RetrieveWorks = async(req,res)=>{
             },
             {
                 $lookup:{
+                    from:'steppers',
+                    localField:'stepperId',
+                    foreignField:'_id',
+                    as:'stepperDetails'
+                }
+            },
+            {
+                $unwind:'$stepperDetails'
+            },
+            {
+                $lookup:{
                     from:'students',
                     localField:'studentId',
                     foreignField:'_id',
@@ -313,8 +325,8 @@ employeeCtrl.RetrieveWorks = async(req,res)=>{
                     'studentName':'$studentDetails.name',
                     'assigneeName':'$employeeDetails.name',
                     'country':'$applicationDetails.country',
-                    'university':'$applicationDetails.university',
-                    'program':'$applicationDetails.program',
+                    'university':'$stepperDetails.university',
+                    'program':'$stepperDetails.program',
                     'intake':'$applicationDetails.intake',
                 }
             },

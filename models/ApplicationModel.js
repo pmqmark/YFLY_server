@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const ApplicationSchema = new mongoose.Schema({
     studentId:{type:mongoose.Types.ObjectId,unique:true,required:true},
-    program:{type:String},
     intake:{type:String},
     country:{type:String,required:true},
     creator:{type:mongoose.Types.ObjectId,required:true},

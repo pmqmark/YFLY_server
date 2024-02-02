@@ -141,6 +141,9 @@ adminCtrl.GetApplicationMetrics = async(req,res)=>{
         const allApplications = await Application.find(filters).countDocuments();
         console.log("all", allApplications);
 
+        const pendingApplications = await Application.find({...filters, status: "pending"}).countDocuments();
+        console.log("processing", pendingApplications);
+
         const ongoingApplications = await Application.find({...filters, status: "ongoing"}).countDocuments();
         console.log("processing", ongoingApplications);
 
@@ -159,7 +162,8 @@ adminCtrl.GetApplicationMetrics = async(req,res)=>{
 
         res.status(200).json([
             {name: "All",value:allApplications}, 
-            {name:"Current",value:ongoingApplications},
+            {name:"Pending",value:pendingApplications},
+            {name:"On-going",value:ongoingApplications},
             {name:"Completed",value:completedApplications},
             {name:"Deffered",value:defferredApplications},
             {name:"Cancelled",value:cancelledApplications},

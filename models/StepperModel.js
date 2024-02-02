@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const StepperSchema = new mongoose.Schema({
     applicationId:{type:mongoose.Types.ObjectId},
+    program:{type:String},
     university:{type:String, required:true},
     partnership:{type:String},
     steps:{type:[

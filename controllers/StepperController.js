@@ -11,7 +11,7 @@ const stepCtrl = {}
 
 // Create a Step;
 stepCtrl.CreateAStepper = async(req,res)=>{
-    const {applicationId,university, partnership, assignee} = req.body;
+    const {applicationId, program, university, partnership, assignee} = req.body;
 
     const application = await Application.findById(applicationId);
     if(!application) return res.status(404).json({msg:"Application not found"})
@@ -40,6 +40,7 @@ stepCtrl.CreateAStepper = async(req,res)=>{
     try {
         const newStepper = new Stepper({
             applicationId: new ObjectId(applicationId),
+            program,
             university,
             steps: currentSteps
         });
