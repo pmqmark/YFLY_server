@@ -6,7 +6,8 @@ const AdminSchema = new mongoose.Schema({
     password:{type:String},
     image:{type:String},
     role: {type:String, default:"admin", required:true},
-})
+    
+},{timestamps:true})
 
 const Admin = mongoose.model("Admin", AdminSchema);
 

@@ -20,9 +20,8 @@ const ApplicationSchema = new mongoose.Schema({
             enum:["pending", "ongoing", "completed", "enrolled", "cancelled", "deffered", "not-enrolled"]
            },
     assignee:{type:mongoose.Types.ObjectId},
-    createdAt:{type:Date, default:Date.now},
-    updatedAt:{type:Date, default:Date.now},
-});
+ 
+},{timestamps:true});
 
 
 const Application = mongoose.model("Application", ApplicationSchema);

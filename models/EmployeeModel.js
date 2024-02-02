@@ -22,7 +22,8 @@ const EmployeeSchema = new mongoose.Schema({
     currentTasks: {type:Array, default:[]},
     isActive:{type:Boolean, default:true},
     office:{type:String}
-})
+
+},{timestamps:true})
 
 const Employee = mongoose.model("Employee", EmployeeSchema);
 

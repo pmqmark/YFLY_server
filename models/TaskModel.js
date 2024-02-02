@@ -7,7 +7,7 @@ const TaskSchema = new mongoose.Schema({
     taskStatus:{type:String, default:"pending"},
     comments:{type:Array, default:[]}
   
-});
+},{timestamps:true});
 
 const Task = mongoose.model("Task", TaskSchema);
 

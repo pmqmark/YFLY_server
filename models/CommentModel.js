@@ -6,8 +6,8 @@ const CommentSchema = new mongoose.Schema({
     commentorId:{type:mongoose.Types.ObjectId,required:true},
     comment:{type:String},
     fromAdmin:{type:Boolean},
-    createdAt:{type:Date, default: Date.now},
-});
+    
+},{timestamps:true});
 
 const Comment = mongoose.model("Comment", CommentSchema);
 

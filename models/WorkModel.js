@@ -7,7 +7,8 @@ const WorkSchema = new mongoose.Schema({
     assignee:{type:mongoose.Types.ObjectId, required:true},
     stepNumber:{type:Number, required:true},
     stepStatus:{type:String},
-})
+    
+},{timestamps:true})
 
 const Work = mongoose.model("Work",WorkSchema);
 

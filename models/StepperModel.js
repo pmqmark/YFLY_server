@@ -14,7 +14,8 @@ const StepperSchema = new mongoose.Schema({
         }
     ],
     default:[]},
-})
+
+},{timestamps:true})
 
 const Stepper = mongoose.model("Stepper",StepperSchema)
 

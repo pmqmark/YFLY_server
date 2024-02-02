@@ -7,7 +7,8 @@ const ProjectSchema = new mongoose.Schema({
     endDate:{type:Date},
     members:{type:Array, default:[]},
     tasks:{type:Array,default:[]},
-});
+
+},{timestamps:true});
 
 const Project = mongoose.model("Project", ProjectSchema);
 

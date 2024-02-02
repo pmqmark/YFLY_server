@@ -17,7 +17,8 @@ const StudentSchema = new mongoose.Schema({
     image:{type:String},
     applicationId:{type:mongoose.Types.ObjectId},
     office:{type:String}
-})
+    
+},{timestamps:true})
 
 const Student = mongoose.model("Student", StudentSchema);
 
