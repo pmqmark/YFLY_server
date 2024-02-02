@@ -16,7 +16,6 @@ const stepperRouter = require("./routes/StepperRoutes");
 
 const PORT = process.env.PORT || 8800;
 const ClientURL = process.env.ClientURL;
-// halo
 
 ConnectDB();
 
