@@ -270,7 +270,7 @@ stepCtrl.updateStepper = async (req, res) => {
 
                 const applicationStatus = stepperDoc?.steps[stepNumber - 1]?.name;
 
-                if (stepStatus === "ongoing") {
+                if (stepStatus === "pending" || stepStatus === "ongoing") {
                     await Application.findByIdAndUpdate(application._id, {
                         $push: { statuses: applicationStatus }
                     })

@@ -40,6 +40,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
     //typeof uniBased = [{program,university,partnership}] 
 
     let steppers = [];
+    let statuses = [];
 
 
     let schemaObject = {
@@ -108,6 +109,8 @@ applicationCtrl.CreateApplication = async (req, res) => {
 
             steppers.push(savedStepper._id)
 
+            statuses.push(savedStepper?.steps[0]?.name)
+
             if (assignee) {
                 const newWork = new Work({
                     applicationId: application._id,
@@ -130,7 +133,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
         }
 
         await Application.findByIdAndUpdate(application._id, {
-            $set: { steppers: steppers }
+            $set: { steppers: steppers , statuses: statuses},
         })
 
         await Student.findByIdAndUpdate(studentId, {
@@ -183,8 +186,6 @@ applicationCtrl.GetAllApplications = async (req, res) => {
 
     if (intake) { filters.intake = { $regex: new RegExp(intake, 'i') } };
 
-    // if (status) { filters.status = { $regex: new RegExp(status, 'i') } };
-    
     if (status) { filters.statuses =  status  };
 
     if (startDateQuery && endDateQuery) {
