@@ -268,7 +268,7 @@ stepCtrl.updateStepper = async (req, res) => {
                 )
 
 
-                const applicationStatus = stepperDoc?.steps[stepNumber].name;
+                const applicationStatus = stepperDoc?.steps[stepNumber - 1]?.name;
 
                 if (stepStatus === "ongoing") {
                     await Application.findByIdAndUpdate(application._id, {
