@@ -11,7 +11,7 @@ const stepCtrl = {}
 
 // Create a Step;
 stepCtrl.CreateAStepper = async (req, res) => {
-    const { applicationId, program, university, partnership, assignee } = req.body;
+    const { applicationId,intake, program, university, partnership, assignee } = req.body;
 
 
     try {
@@ -42,6 +42,7 @@ stepCtrl.CreateAStepper = async (req, res) => {
 
         const newStepper = new Stepper({
             applicationId: new ObjectId(applicationId),
+            intake,
             program,
             university,
             steps: currentSteps
@@ -64,12 +65,12 @@ stepCtrl.CreateAStepper = async (req, res) => {
             const savedWork = await newWork.save();
 
             await Employee.findByIdAndUpdate(assignee, {
-                $push: { currentWorks: savedWork._id }
+                $push: { currentWorks: savedWork._id}
             });
         }
 
         await Application.findByIdAndUpdate(savedStepper.applicationId, {
-            $push: { steppers: savedStepper._id }
+            $push: { steppers: savedStepper._id , intakes: intake, statuses: savedStepper?.steps[0]?.name }
         })
 
         res.status(200).json(savedStepper);
@@ -123,6 +124,7 @@ stepCtrl.GetSingleStepper = async (req, res) => {
                 $group: {
                     _id: "$_id",
                     applicationId: { $first: "$applicationId" },
+                    intake: { $first: "$intake" },
                     program: { $first: "$program" },
                     university: { $first: "$university" },
                     partnership: { $first: "$partnership" },
@@ -159,9 +161,9 @@ stepCtrl.GetAllSteppers = async (req, res) => {
         console.log(application);
         if (!application) return res.status(404).json({ msg: "Application not found" });
 
-        const steps = await Stepper.find({ applicationId: application._id })
+        const steppers = await Stepper.find({ applicationId: application._id })
 
-        res.status(200).json(steps)
+        res.status(200).json(steppers)
     } catch (error) {
         res.status(500).json({ msg: "Something went wrong" })
 
@@ -288,7 +290,8 @@ stepCtrl.updateStepper = async (req, res) => {
         await Work.findOneAndUpdate({
             applicationId: application._id,
             stepperId: new ObjectId(stepperId),
-            assignee: new ObjectId(stepAssignee), stepNumber
+            assignee: new ObjectId(stepAssignee), 
+            stepNumber
         },
             { $set: { stepStatus: stepStatus } }
         );
@@ -341,3 +344,4 @@ stepCtrl.DeleteAStepper = async (req, res) => {
 
 module.exports = stepCtrl;
 
+// Should add Intake along with Program

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const ApplicationSchema = new mongoose.Schema({
     studentId:{type:mongoose.Types.ObjectId,unique:true,required:true},
-    intake:{type:String},
+    intakes:{type:Array, default:[]},
     country:{type:String,required:true},
     creator:{type:mongoose.Types.ObjectId,required:true},
     steppers:{type:Array,default:[]},
@@ -14,9 +14,7 @@ const ApplicationSchema = new mongoose.Schema({
                         }
                     ],
          default:[]},
-    statuses:{type:Array,
-            default:[],
-           },
+    statuses:{type:Array,default:[]},
     assignee:{type:mongoose.Types.ObjectId},
  
 },{timestamps:true});

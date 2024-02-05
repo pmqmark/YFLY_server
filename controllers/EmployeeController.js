@@ -318,7 +318,7 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
                     'country': '$applicationDetails.country',
                     'university': '$stepperDetails.university',
                     'program': '$stepperDetails.program',
-                    'intake': '$applicationDetails.intake',
+                    'intake': '$stepperDetails.intake',
                 }
             },
             {
@@ -489,3 +489,4 @@ employeeCtrl.WorkAssign = async (req, res) => {
 
 module.exports = employeeCtrl;
 
+// intake present

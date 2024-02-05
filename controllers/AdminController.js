@@ -121,7 +121,7 @@ adminCtrl.GetApplicationMetrics = async (req, res) => {
 
     if (country) { filters.country = { $regex: new RegExp(country, 'i') } };
 
-    if (intake) { filters.intake = { $regex: new RegExp(intake, 'i') } };
+    if (intake) { filters.intakes = intake};
 
     if (startDateQuery && endDateQuery) {
         const startDate = new Date(`${startDateQuery}T00:00:00.000+05:30`);
@@ -235,4 +235,4 @@ adminCtrl.WorkAssign = async (req, res) => {
 
 
 module.exports = adminCtrl;
-
+// intake present 

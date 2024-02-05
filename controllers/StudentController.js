@@ -266,8 +266,7 @@ studentCtrl.GetMyApplication = async (req, res) => {
                 $project: {
                     _id: 1,
                     studentId: 1,
-                    program: 1,
-                    intake: 1,
+                    intakes: 1,
                     country: 1,
                     creator: 1,
                     status: 1,
@@ -341,3 +340,4 @@ studentCtrl.DeactivateStudent = async (req, res) => {
 }
 
 module.exports = studentCtrl;
+// intake present 

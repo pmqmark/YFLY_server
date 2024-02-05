@@ -29,7 +29,7 @@ const Stepper = require("../models/StepperModel");
 
 applicationCtrl.CreateApplication = async (req, res) => {
     const { studentId, uniBased,
-        intake, country, creator, assignee } = req.body;
+             country, creator, assignee } = req.body;
 
     console.log("reqBody", req.body);
 
@@ -37,18 +37,20 @@ applicationCtrl.CreateApplication = async (req, res) => {
         return res.status(400).json({ msg: "Invalid Id format" });
     }
 
-    //typeof uniBased = [{program,university,partnership}] 
+    //typeof uniBased = [{intake,program,university,partnership}] 
 
     let steppers = [];
     let statuses = [];
+    let intakes = [];
 
 
     let schemaObject = {
         studentId: new ObjectId(studentId),
-        intake,
         country,
         creator: new ObjectId(creator),
-        steppers
+        steppers,
+        statuses,
+        intakes
     }
 
     if (assignee) {
@@ -69,7 +71,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
         console.log("application", application);
 
         if (!Array.isArray(uniBased)) {
-            return res.status(400).json({ msg: "Unibased is not an array" })
+            return res.status(400).json({ msg: "Incomplete data about university" })
         }
 
         // Creating parallel steps according to the universities;
@@ -99,6 +101,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
 
             const newStepper = new Stepper({
                 applicationId: application._id,
+                intake: obj.intake,
                 program: obj.program,
                 university: obj.university,
                 partnership: obj.partnership,
@@ -110,6 +113,8 @@ applicationCtrl.CreateApplication = async (req, res) => {
             steppers.push(savedStepper._id)
 
             statuses.push(savedStepper?.steps[0]?.name)
+
+            intakes.push(obj?.intake)
 
             if (assignee) {
                 const newWork = new Work({
@@ -133,7 +138,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
         }
 
         await Application.findByIdAndUpdate(application._id, {
-            $set: { steppers: steppers , statuses: statuses},
+            $set: { steppers: steppers , statuses: statuses, intakes: intakes },
         })
 
         await Student.findByIdAndUpdate(studentId, {
@@ -176,7 +181,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
             $or: [
                 { _id: (ObjectId.isValid(searchQuery) ? new ObjectId(searchQuery) : searchQuery) },
                 { "studentDetails.name": { $regex: new RegExp(searchQuery, "i") } },
-                { intake: { $regex: new RegExp(searchQuery, "i") } },
+                { intakes:{$elemMatch: {$regex: new RegExp(searchQuery, "i") } }},
                 { country: { $regex: new RegExp(searchQuery, "i") } },
             ]
         }
@@ -184,9 +189,9 @@ applicationCtrl.GetAllApplications = async (req, res) => {
 
     if (country) { filters.country = { $regex: new RegExp(country, 'i') } };
 
-    if (intake) { filters.intake = { $regex: new RegExp(intake, 'i') } };
-
     if (status) { filters.statuses =  status  };
+
+    if (intake) { filters.intakes =  intake  };
 
     if (startDateQuery && endDateQuery) {
         const startDate = new Date(`${startDateQuery}T00:00:00.000+05:30`);
@@ -241,8 +246,8 @@ applicationCtrl.GetAllApplications = async (req, res) => {
                 $project: {
                     "_id": 1,
                     "studentId": 1,
-                    "intake": 1,
                     "country": 1,
+                    "intakes":1,
                     "creator": 1,
                     "steppers": 1,
                     "documents": 1,
@@ -328,8 +333,8 @@ applicationCtrl.GetApplication = async (req, res) => {
                 $project: {
                     _id: 1,
                     studentId: 1,
-                    intake: 1,
                     country: 1,
+                    intakes:1,
                     creator: 1,
                     statuses: 1,
                     assignee: 1,
@@ -448,7 +453,6 @@ applicationCtrl.CheckDocName = async (req, res, next) => {
             console.log("Document already exists")
             return res.status(400).json({ msg: "The Document already exists" })
         } else {
-            // res.status(200).json({msg:"Dummy Documents uploaded successfully"})
             next()
         }
 
@@ -466,8 +470,6 @@ applicationCtrl.UploadDoc = async (req, res) => {
     console.log("*applicationId*", applicationId)
     if (!applicationId) return res.status(500).json({ msg: "Invalid applicationId" })
 
-    // console.log("req.body", req.body)
-    // console.log("req.file",req.file)
     if (!req.file) return res.status(400).json({ msg: "File not present" })
 
     const docName = req.params.name;
