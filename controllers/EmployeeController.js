@@ -456,9 +456,18 @@ employeeCtrl.WorkAssign = async (req, res) => {
 
         const applicationStatus = modifiedStepper?.steps[stepNumber - 1]?.name;
 
-        await Application.findByIdAndUpdate(application._id, {
-            $push: { statuses: applicationStatus }
-        })
+        if(application?.assignees?.includes(employee._id)){
+            await Application.findByIdAndUpdate(application._id, {
+                $push: { statuses: applicationStatus }
+            })
+            
+        }else{
+            await Application.findByIdAndUpdate(application._id, {
+                $push: { statuses: applicationStatus , assignees: employee._id}
+            })
+
+        }
+
 
 
         const newWork = new Work({

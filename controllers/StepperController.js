@@ -68,9 +68,18 @@ stepCtrl.CreateAStepper = async (req, res) => {
             });
         }
 
-        await Application.findByIdAndUpdate(savedStepper.applicationId, {
-            $push: { steppers: savedStepper._id , intakes: intake, statuses: savedStepper?.steps[0]?.name }
-        })
+        if(application?.assignees?.includes(new ObjectId(assignee))){
+            await Application.findByIdAndUpdate(savedStepper.applicationId, {
+                $push: { steppers: savedStepper._id , intakes: intake, statuses: savedStepper?.steps[0]?.name }
+            })
+
+        }else{
+            await Application.findByIdAndUpdate(savedStepper.applicationId, {
+                $push: { steppers: savedStepper._id , intakes: intake, statuses: savedStepper?.steps[0]?.name, assignees: new ObjectId(assignee) }
+            })
+
+        }
+
 
         res.status(200).json(savedStepper);
 
@@ -200,16 +209,23 @@ stepCtrl.updateStepper = async (req, res) => {
 
 
                 const applicationStatus = stepperDoc?.steps[stepNumber - 1]?.name;
+                const currentAssignee = stepperDoc?.steps[stepNumber - 1]?.assignee;
 
                 if (stepStatus === "pending" || stepStatus === "ongoing") {
                     await Application.findByIdAndUpdate(application._id, {
-                        $push: { statuses: applicationStatus }
+                        $push: { statuses: applicationStatus },
+                        $set: { phase: "ongoing" }
                     })
                 }
 
                 if (stepStatus === "completed") {
+                    const oldArray = application?.statuses
+                    const index = oldArray?.findIndex((status)=> status === applicationStatus)
+                    const newStatuses = oldArray?.filter((status, i)=> i !== index)
+
                     await Application.findByIdAndUpdate(application._id, {
-                        $pull: { statuses: applicationStatus }
+                        $pull: {  assignees: currentAssignee },
+                        $set:{statuses: newStatuses }
                     })
                 }
             }
@@ -270,3 +286,4 @@ stepCtrl.DeleteAStepper = async (req, res) => {
 }
 
 module.exports = stepCtrl;
+// assignee

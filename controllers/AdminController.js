@@ -56,8 +56,6 @@ adminCtrl.UpdateAdmin = async (req, res) => {
         }
 
         if (req.body.password) {
-            const passwordRegex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
-            if (!passwordRegex.test(req.body.password)) return res.status(400).json({ msg: "Invalid password format" });
 
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(req.body.password, salt);
@@ -142,22 +140,22 @@ adminCtrl.GetApplicationMetrics = async (req, res) => {
         const allApplications = await Application.find(filters).countDocuments();
         console.log("all", allApplications);
 
-        const pendingApplications = await Application.find({ ...filters, status: "pending" }).countDocuments();
+        const pendingApplications = await Application.find({ ...filters, phase: "pending" }).countDocuments();
         console.log("processing", pendingApplications);
 
-        const ongoingApplications = await Application.find({ ...filters, status: "ongoing" }).countDocuments();
+        const ongoingApplications = await Application.find({ ...filters, phase: "ongoing" }).countDocuments();
         console.log("processing", ongoingApplications);
 
-        const completedApplications = await Application.find({ ...filters, status: "completed" }).countDocuments();
+        const completedApplications = await Application.find({ ...filters, phase: "completed" }).countDocuments();
         console.log("completed", completedApplications);
 
-        const defferredApplications = await Application.find({ ...filters, status: "deffered" }).countDocuments();
+        const defferredApplications = await Application.find({ ...filters, phase: "deffered" }).countDocuments();
         console.log("deffered", defferredApplications);
 
-        const cancelledApplications = await Application.find({ ...filters, status: "cancelled" }).countDocuments();
+        const cancelledApplications = await Application.find({ ...filters, phase: "cancelled" }).countDocuments();
         console.log("cancelled", cancelledApplications);
 
-        const notEnrolledApplications = await Application.find({ ...filters, status: "not-enrolled" }).countDocuments();
+        const notEnrolledApplications = await Application.find({ ...filters, phase: "not-enrolled" }).countDocuments();
         console.log("not-enrolled", notEnrolledApplications);
 
 
@@ -176,61 +174,6 @@ adminCtrl.GetApplicationMetrics = async (req, res) => {
     }
 }
 
-
-// Assign work to an Employee; 
-// ** warning: same work can be assigned many times;
-
-adminCtrl.WorkAssign = async (req, res) => {
-    const { applicationId, employeeId, stepperId, stepNumber } = req.body;
-
-    console.log(applicationId, employeeId, stepperId, stepNumber)
-
-    if (!(typeof applicationId === 'string' || ObjectId.isValid(applicationId))) {
-        return res.status(400).json({ msg: "Invalid Id format" });
-    };
-
-    if (!(typeof employeeId === 'string' || ObjectId.isValid(employeeId))) {
-        return res.status(400).json({ msg: "Invalid Id format" });
-    };
-
-    try {
-        const application = await Application.findById(applicationId);
-        if (!application) return res.status(404).json({ msg: "Application not found" });
-
-        const employee = await Employee.findById(employeeId);
-        if (!employee) return res.status(404).json({ msg: "Employee not found" });
-
-        //Update the assignee and status in that particular step
-
-        const modifiedStepper = await Stepper.findOneAndUpdate({ _id: new ObjectId(stepperId), steps: { $elemMatch: { _id: stepNumber } } },
-            { $set: { 'steps.$.assignee': employee._id, 'steps.$.status': "pending" } }, { new: true }
-        );
-
-
-        const newWork = new Work({
-            applicationId: application._id,
-            stepperId: new ObjectId(stepperId),
-            studentId: application.studentId,
-            assignee: employee._id,
-            stepNumber,
-            stepStatus: "pending"
-        })
-
-        console.log("newWork", newWork)
-
-        const savedWork = await newWork.save();
-
-        await Employee.findByIdAndUpdate(employeeId, {
-            $push: { currentWorks: savedWork._id }
-        });
-
-
-        res.status(200).json({ msg: "Work Assigned", modifiedStepper })
-    } catch (error) {
-        res.status(500).json({ msg: "Something went Wrong" })
-
-    }
-}
 
 
 

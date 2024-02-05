@@ -29,7 +29,7 @@ const Stepper = require("../models/StepperModel");
 
 applicationCtrl.CreateApplication = async (req, res) => {
     const { studentId, uniBased,
-             country, creator, assignee } = req.body;
+        country, creator, assignee } = req.body;
 
     if (!(typeof studentId === 'string' || ObjectId.isValid(studentId))) {
         return res.status(400).json({ msg: "Invalid Id format" });
@@ -48,12 +48,13 @@ applicationCtrl.CreateApplication = async (req, res) => {
         creator: new ObjectId(creator),
         steppers,
         statuses,
-        intakes
+        intakes,
+        assignees: [new ObjectId(assignee)],
     }
 
-    if (assignee) {
-        schemaObject.assignee = new ObjectId(assignee)
-    }
+    // if (assignee) {
+    //     schemaObject.assignee = new ObjectId(assignee)
+    // }
 
     try {
         const student = await Student.findById(studentId);
@@ -136,7 +137,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
         }
 
         await Application.findByIdAndUpdate(application._id, {
-            $set: { steppers: steppers , statuses: statuses, intakes: intakes },
+            $set: { steppers: steppers, statuses: statuses, intakes: intakes },
         })
 
         await Student.findByIdAndUpdate(studentId, {
@@ -158,9 +159,9 @@ applicationCtrl.GetAllApplications = async (req, res) => {
     const intake = req.query.intake;
     const startDateQuery = req.query.start_date;
     const endDateQuery = req.query.end_date;
-    
-    let status 
-    if(req.query.status){
+
+    let status
+    if (req.query.status) {
         status = decodeURIComponent(req.query.status);
     }
 
@@ -179,7 +180,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
             $or: [
                 { _id: (ObjectId.isValid(searchQuery) ? new ObjectId(searchQuery) : searchQuery) },
                 { "studentDetails.name": { $regex: new RegExp(searchQuery, "i") } },
-                { intakes:{$elemMatch: {$regex: new RegExp(searchQuery, "i") } }},
+                { intakes: { $elemMatch: { $regex: new RegExp(searchQuery, "i") } } },
                 { country: { $regex: new RegExp(searchQuery, "i") } },
             ]
         }
@@ -187,9 +188,9 @@ applicationCtrl.GetAllApplications = async (req, res) => {
 
     if (country) { filters.country = { $regex: new RegExp(country, 'i') } };
 
-    if (status) { filters.statuses =  status  };
+    if (status) { filters.statuses = status };
 
-    if (intake) { filters.intakes =  intake  };
+    if (intake) { filters.intakes = intake };
 
     if (startDateQuery && endDateQuery) {
         const startDate = new Date(`${startDateQuery}T00:00:00.000+05:30`);
@@ -217,7 +218,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
             {
                 $lookup: {
                     from: "employees",
-                    localField: "assignee",
+                    localField: "assignees",
                     foreignField: "_id",
                     as: "assigneeDetails"
                 }
@@ -234,10 +235,21 @@ applicationCtrl.GetAllApplications = async (req, res) => {
                 }
             },
             {
-                $addFields: {
-                    "studentName": "$studentDetails.name",
-                    "assigneeName": "$assigneeDetails.name",
-                    "assigneePhone": "$assigneeDetails.phone",
+                $group: {
+                    _id: "$_id",
+                    studentId: { $first: "$studentId" },
+                    country: { $first: "$country" },
+                    intakes: { $first: "$intakes" },
+                    creator: { $first: "$creator" },
+                    steppers: { $first: "$steppers" },
+                    documents: { $first: "$documents" },
+                    statuses: { $first: "$statuses" },
+                    createdAt: { $first: "$createdAt" },
+                    updatedAt: { $first: "$updatedAt" },
+                    assignees: { $first: "$assignees" },
+                    studentName: { $first: "$studentDetails.name" },
+                    assigneeNames: { $push: "$assigneeDetails.name" },
+                    assigneePhones: { $push: "$assigneeDetails.phone" },
                 }
             },
             {
@@ -245,26 +257,29 @@ applicationCtrl.GetAllApplications = async (req, res) => {
                     "_id": 1,
                     "studentId": 1,
                     "country": 1,
-                    "intakes":1,
+                    "intakes": 1,
                     "creator": 1,
                     "steppers": 1,
                     "documents": 1,
                     "statuses": 1,
                     "createdAt": 1,
                     "updatedAt": 1,
-                    "assignee": 1,
+                    "assignees": 1,
                     "studentName": 1,
-                    "assigneeName": 1,
-                    "assigneePhone": 1,
-
+                    "assigneeNames": 1,
+                    "assigneePhones": 1,
                 }
             },
-        ]);
+            {
+                $sort:{createdAt: -1}
+            }
 
+        ]);
+        
 
         console.log("all-applications", allApplications);
 
-        let result = allApplications.reverse();
+        let result = allApplications;
 
         if (page) {
             if (entries) {
@@ -272,8 +287,8 @@ applicationCtrl.GetAllApplications = async (req, res) => {
             } else {
                 result = result.slice(((page - 1) * 10), (page * 10))
             }
-        } 
-       
+        }
+
 
         res.status(200).json(result);
     } catch (error) {
@@ -308,7 +323,7 @@ applicationCtrl.GetApplication = async (req, res) => {
             {
                 $lookup: {
                     from: "employees",
-                    localField: "assignee",
+                    localField: "assignees",
                     foreignField: "_id",
                     as: "assignee"
                 }
@@ -332,10 +347,10 @@ applicationCtrl.GetApplication = async (req, res) => {
                     _id: 1,
                     studentId: 1,
                     country: 1,
-                    intakes:1,
+                    intakes: 1,
                     creator: 1,
                     statuses: 1,
-                    assignee: 1,
+                    assignees: 1,
                     documents: 1,
                     createdAt: 1,
                     updatedAt: 1,
@@ -413,12 +428,12 @@ applicationCtrl.DeleteApplication = async (req, res) => {
                 });
 
                 // Remove applicationId from Student and related works or delete the works
-                await Student.findByIdAndUpdate(application.studentId,{
-                    $set: {applicationId : null}
+                await Student.findByIdAndUpdate(application.studentId, {
+                    $set: { applicationId: null }
                 })
 
                 await Work.deleteMany({ applicationId: application._id });
-                
+
             })
             .catch((error) => {
                 console.log(error)
@@ -676,4 +691,26 @@ applicationCtrl.UpdateDocument = async (req, res) => {
 }
 
 
+applicationCtrl.PhaseChange = async (req, res) => {
+    const applicationId = req.params.id;
+    const phase = req.body.phase;
+
+    const application = await Application.findById(applicationId);
+    if (!application) res.status(404).json({ msg: "Application not found" })
+
+    try {
+        await Application.findByIdAndUpdate(application._id, {
+            $set: { phase: phase }
+        })
+
+        res.status(200).json({ msg: "Application State changed" })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: "Something went wrong" })
+    }
+
+}
+
+
 module.exports = applicationCtrl;
+// assignee statuses

@@ -243,7 +243,7 @@ studentCtrl.GetMyApplication = async (req, res) => {
             {
                 $lookup: {
                     from: "employees",
-                    localField: "assignee",
+                    localField: "assignees",
                     foreignField: "_id",
                     as: "assignee"
                 }
@@ -270,7 +270,7 @@ studentCtrl.GetMyApplication = async (req, res) => {
                     country: 1,
                     creator: 1,
                     status: 1,
-                    assignee: 1,
+                    assignees: 1,
                     documents: 1,
                     createdAt: 1,
                     updatedAt: 1,
@@ -340,4 +340,4 @@ studentCtrl.DeactivateStudent = async (req, res) => {
 }
 
 module.exports = studentCtrl;
-// intake present 
+// assignee 

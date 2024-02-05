@@ -17,4 +17,6 @@ router.get("/get-document/:id/:name", authMiddleware, applicationCtrl.GetDocumen
 router.put("/delete-document/:id/:name", authMiddleware, applicationCtrl.DeleteDocument);
 router.put("/update-document/:id/:name", authMiddleware, upload.single('document'), applicationCtrl.UpdateDocument);
 
+router.put("/phase-change/:id", authMiddleware, employeeChecker, applicationCtrl.PhaseChange);
+
 module.exports = router;
