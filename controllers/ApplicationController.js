@@ -243,6 +243,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
                     createdAt: { $first: "$createdAt" },
                     updatedAt: { $first: "$updatedAt" },
                     assignees: { $first: "$assignees" },
+                    phase: { $first: "$phase" },
                     studentName: { $first: "$studentDetails.name" },
                     assigneeNames: { $push: "$assigneeDetails.name" },
                     assigneePhones: { $push: "$assigneeDetails.phone" },
@@ -264,6 +265,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
                     "studentName": 1,
                     "assigneeNames": 1,
                     "assigneePhones": 1,
+                    "phase": 1,
                 }
             },
             {
@@ -352,7 +354,8 @@ applicationCtrl.GetApplication = async (req, res) => {
                     updatedAt: 1,
                     studentName: "$student.name",
                     assignee: "$assignee.name",
-                    steppers: 1
+                    steppers: 1,
+                    phase:1
                 }
             }
         ]);
