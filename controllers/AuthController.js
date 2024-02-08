@@ -66,25 +66,41 @@ authCtrl.regenerateAccessToken = async (req, res) => {
 
     if (typeof refreshToken !== 'string') return res.sendStatus(400);
 
-    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-        if (err) return res.sendStatus(400)
+    try {
+        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+            if (err) return res.sendStatus(400)
 
-        const accessToken = generateAccessToken({ userId: user._id, role: user.role });
+            const accessToken = generateAccessToken({ userId: user._id, role: user.role });
 
-        res.cookie("access_token", accessToken, { httpOnly: true, maxAge: maxAgeAccessCookie })
+            res.cookie("access_token", accessToken, { httpOnly: true, maxAge: maxAgeAccessCookie })
 
-        res.json({ msg: "Access token regenerated" });
-    })
+            res.json({ msg: "Access token regenerated" });
+        })
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ msg: "Something went wrong" })
+
+    }
+
 }
 
 //Terminate session by deleting tokens in frontend;
 
 authCtrl.Logout = async (req, res) => {
 
-    res.clearCookie("access_token");
-    res.clearCookie("refresh_token");
+    try {
+        res.clearCookie("access_token");
+        res.clearCookie("refresh_token");
 
-    res.sendStatus(204)
+        res.sendStatus(204)
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ msg: "Something went wrong" })
+
+    }
+
 }
 
 

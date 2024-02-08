@@ -688,10 +688,11 @@ applicationCtrl.PhaseChange = async (req, res) => {
     const applicationId = req.params.id;
     const phase = req.body.phase;
 
-    const application = await Application.findById(applicationId);
-    if (!application) res.status(404).json({ msg: "Application not found" })
-
+    
     try {
+        const application = await Application.findById(applicationId);
+        if (!application) res.status(404).json({ msg: "Application not found" })
+        
         await Application.findByIdAndUpdate(application._id, {
             $set: { phase: phase }
         })
