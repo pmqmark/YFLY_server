@@ -64,9 +64,7 @@ stepCtrl.CreateAStepper = async (req, res) => {
 
             const savedWork = await newWork.save();
 
-            await Employee.findByIdAndUpdate(assignee, {
-                $push: { currentWorks: savedWork._id }
-            });
+           
         }
 
         if (application?.assignees?.includes(new ObjectId(assignee))) {
@@ -270,13 +268,6 @@ stepCtrl.DeleteAStepper = async (req, res) => {
             $pull: { steppers: stepperDoc._id }
         })
 
-        const relatedWorks = await Work.find({ stepperId: new ObjectId(stepperId) })
-
-        for (const work of relatedWorks) {
-            await Employee.findByIdAndUpdate(work.assignee, {
-                $pull: { currentWorks: work._id }
-            })
-        }
 
         await Work.deleteMany({ stepperId: new ObjectId(stepperId) })
 
@@ -288,4 +279,3 @@ stepCtrl.DeleteAStepper = async (req, res) => {
 }
 
 module.exports = stepCtrl;
-// currentWorks

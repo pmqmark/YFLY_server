@@ -15,7 +15,6 @@ const ApplicationSchema = new mongoose.Schema({
                     ],
          default:[]},
     statuses:{type:Array,default:[]},
-    // assignee:{type:mongoose.Types.ObjectId},
     assignees:{type:[{type:mongoose.Types.ObjectId, ref:'Employee'}], default:[]},
 
     phase:{type:String, default: "pending"},

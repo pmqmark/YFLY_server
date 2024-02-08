@@ -263,7 +263,6 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
         const employee = await Employee.findById(employeeId);
         if (!employee) return res.status(404).json({ msg: "Employee Not Found" });
 
-        // const currentWorks = employee.currentWorks;
 
         const result = await Work.aggregate([
             {
@@ -499,4 +498,3 @@ employeeCtrl.WorkAssign = async (req, res) => {
 
 
 module.exports = employeeCtrl;
-// currentWorks

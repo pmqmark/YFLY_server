@@ -126,9 +126,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
 
                 const savedWork = await newWork.save();
 
-                await Employee.findByIdAndUpdate(assignee, {
-                    $push: { currentWorks: savedWork._id }
-                });
+               
             }
 
         }
@@ -421,15 +419,6 @@ applicationCtrl.DeleteApplication = async (req, res) => {
 
                 await Stepper.deleteMany({ applicationId: application._id });
 
-                const relatedWorks = await Work.find({ applicationId: application._id });
-
-                const idsOfworks = relatedWorks.map((work) => work._id)
-
-                for (const assignee of assigneesArray) {
-                    await Employee.findByIdAndUpdate(assignee, {
-                        $pull: { currentWorks: { $in: idsOfworks } }
-                    });
-                }
 
                 // Remove applicationId from Student and related works or delete the works
                 await Student.findByIdAndUpdate(application.studentId, {
@@ -717,4 +706,3 @@ applicationCtrl.PhaseChange = async (req, res) => {
 
 
 module.exports = applicationCtrl;
-// currentWorks

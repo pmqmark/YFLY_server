@@ -733,4 +733,3 @@ projectCtrl.GetMembers = async (req, res) => {
 }
 
 module.exports = projectCtrl;
-// currentTasks
