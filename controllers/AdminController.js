@@ -134,29 +134,29 @@ adminCtrl.GetApplicationMetrics = async (req, res) => {
         filters.createdAt = { $gte: yearStart, $lt: yearEnd };
     };
 
-    console.log(filters);
+    // console.log(filters);
 
     try {
         const allApplications = await Application.find(filters).countDocuments();
-        console.log("all", allApplications);
+        // console.log("all", allApplications);
 
         const pendingApplications = await Application.find({ ...filters, phase: "pending" }).countDocuments();
-        console.log("processing", pendingApplications);
+        // console.log("processing", pendingApplications);
 
         const ongoingApplications = await Application.find({ ...filters, phase: "ongoing" }).countDocuments();
-        console.log("processing", ongoingApplications);
+        // console.log("processing", ongoingApplications);
 
         const completedApplications = await Application.find({ ...filters, phase: "completed" }).countDocuments();
-        console.log("completed", completedApplications);
+        // console.log("completed", completedApplications);
 
         const defferredApplications = await Application.find({ ...filters, phase: "deffered" }).countDocuments();
-        console.log("deffered", defferredApplications);
+        // console.log("deffered", defferredApplications);
 
         const cancelledApplications = await Application.find({ ...filters, phase: "cancelled" }).countDocuments();
-        console.log("cancelled", cancelledApplications);
+        // console.log("cancelled", cancelledApplications);
 
         const notEnrolledApplications = await Application.find({ ...filters, phase: "not-enrolled" }).countDocuments();
-        console.log("not-enrolled", notEnrolledApplications);
+        // console.log("not-enrolled", notEnrolledApplications);
 
 
         res.status(200).json([
