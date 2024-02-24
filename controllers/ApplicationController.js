@@ -40,6 +40,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
     let steppers = [];
     let statuses = [];
     let intakes = [];
+    let assignees = [];
 
 
     let schemaObject = {
@@ -49,7 +50,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
         steppers,
         statuses,
         intakes,
-        assignees: [new ObjectId(assignee)],
+        assignees,
     }
 
     try {
@@ -109,6 +110,8 @@ applicationCtrl.CreateApplication = async (req, res) => {
 
             intakes.push(obj?.intake)
 
+            assignees.push(new ObjectId(assignee))
+
             if (assignee) {
                 const newWork = new Work({
                     applicationId: application._id,
@@ -129,7 +132,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
         }
 
         await Application.findByIdAndUpdate(application._id, {
-            $set: { steppers: steppers, statuses: statuses, intakes: intakes },
+            $set: { steppers: steppers, statuses: statuses, intakes: intakes, assignees: assignees },
         })
 
         res.status(200).json({ msg: "New Application Created" })
@@ -330,7 +333,8 @@ applicationCtrl.GetApplication = async (req, res) => {
                 $unwind: "$student"
             },
             {
-                $unwind: "$assignee"
+                $unwind: 
+                {path:"$assignee", preserveNullAndEmptyArrays:true}
             },
             {
                 $project: {

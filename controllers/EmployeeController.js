@@ -266,7 +266,7 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
 
         const result = await Work.aggregate([
             {
-                $match: { assignee: new ObjectId(employeeId) , stepStatus: {$ne : "completed"} }
+                $match: { assignee: new ObjectId(employeeId), stepStatus: { $ne: "completed" } }
             },
             {
                 $lookup: {
@@ -451,7 +451,7 @@ employeeCtrl.WorkAssign = async (req, res) => {
             stepNumber,
         })
 
-        if(existWork) return res.status(400).json({msg:"Already Assigned"})
+        if (existWork) return res.status(400).json({ msg: "Already Assigned" })
 
 
         const application = await Application.findById(applicationId);
@@ -461,9 +461,6 @@ employeeCtrl.WorkAssign = async (req, res) => {
         if (!employee) return res.status(404).json({ msg: "Employee not found" });
 
 
-        
-    
-
         //Update the assignee and status in that particular step
 
         const modifiedStepper = await Stepper.findOneAndUpdate({ _id: new ObjectId(stepperId), steps: { $elemMatch: { _id: stepNumber } } },
@@ -472,18 +469,10 @@ employeeCtrl.WorkAssign = async (req, res) => {
 
         const applicationStatus = modifiedStepper?.steps[stepNumber - 1]?.name;
 
-        if (application?.assignees?.includes(employee._id)) {
-            await Application.findByIdAndUpdate(application._id, {
-                $push: { statuses: applicationStatus }
-            })
 
-        } else {
-            await Application.findByIdAndUpdate(application._id, {
-                $push: { statuses: applicationStatus, assignees: employee._id }
-            })
-
-        }
-
+        await Application.findByIdAndUpdate(application._id, {
+            $push: { statuses: applicationStatus, assignees: employee._id }
+        })
 
 
         const newWork = new Work({

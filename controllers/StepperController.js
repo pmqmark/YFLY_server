@@ -64,20 +64,15 @@ stepCtrl.CreateAStepper = async (req, res) => {
 
             const savedWork = await newWork.save();
 
-           
-        }
-
-        if (application?.assignees?.includes(new ObjectId(assignee))) {
-            await Application.findByIdAndUpdate(savedStepper.applicationId, {
-                $push: { steppers: savedStepper._id, intakes: intake, statuses: savedStepper?.steps[0]?.name }
-            })
-
-        } else {
-            await Application.findByIdAndUpdate(savedStepper.applicationId, {
-                $push: { steppers: savedStepper._id, intakes: intake, statuses: savedStepper?.steps[0]?.name, assignees: new ObjectId(assignee) }
-            })
 
         }
+
+
+        await Application.findByIdAndUpdate(savedStepper.applicationId, {
+            $push: { steppers: savedStepper._id, intakes: intake, statuses: savedStepper?.steps[0]?.name, assignees: new ObjectId(assignee) }
+        })
+
+
 
 
         res.status(200).json(savedStepper);
@@ -223,9 +218,13 @@ stepCtrl.updateStepper = async (req, res) => {
                     const index = oldArray?.findIndex((status) => status === applicationStatus)
                     const newStatuses = oldArray?.filter((status, i) => i !== index)
 
+                    // To remove the assignee who completed the task and to keep duplicate
+                    const oldAssignees = application?.assignees
+                    const empIndex = oldAssignees?.findIndex((emp) => emp === currentAssignee)
+                    const newAssignees = oldAssignees?.filter((emp, i) => i !== empIndex)
+
                     await Application.findByIdAndUpdate(application._id, {
-                        $pull: { assignees: currentAssignee },
-                        $set: { statuses: newStatuses }
+                        $set: { statuses: newStatuses, assignees: newAssignees }
                     })
                 }
             }
