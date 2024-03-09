@@ -457,7 +457,7 @@ employeeCtrl.WorkAssign = async (req, res) => {
         const application = await Application.findById(applicationId);
         if (!application) return res.status(404).json({ msg: "Application not found" });
 
-        if (application.phase === "completed") return res.status(404).json({ msg: "Application Completed" });
+        if (application.phase === "completed" || application.phase === "cancelled") return res.status(404).json({ msg: "Inactive Application" });
 
         const employee = await Employee.findById(employeeId);
         if (!employee) return res.status(404).json({ msg: "Employee not found" });

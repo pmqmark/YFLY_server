@@ -191,7 +191,7 @@ stepCtrl.updateStepper = async (req, res) => {
         const application = await Application.findById(stepperDoc.applicationId)
         if (!application) return res.status(404).json({ msg: "Application not found" })
 
-        if (application.phase === "completed") return res.status(404).json({ msg: "Application Completed" });
+        if (application.phase === "completed" || application.phase === "cancelled") return res.status(404).json({ msg: "Inactive Application" });
 
         const assigneeExists = stepperDoc.steps.find((step) => step._id === stepNumber && step.assignee !== undefined)
         if (!assigneeExists) return res.status(404).json({ msg: "Cannot update before assigning" })

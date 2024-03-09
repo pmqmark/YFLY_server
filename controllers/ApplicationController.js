@@ -441,7 +441,7 @@ applicationCtrl.CheckDocName = async (req, res, next) => {
         const application = await Application.findById(applicationId);
         if (!application) return res.status(400).json({ msg: "Application not found" })
 
-        if (application.phase === "completed") return res.status(404).json({ msg: "Application Completed" });
+        if (application.phase === "completed" || application.phase === "cancelled") return res.status(404).json({ msg: "Inactive Application" });
 
         // const docName = req.query.name;
         const docName = req.params.name;
