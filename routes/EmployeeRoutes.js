@@ -13,7 +13,6 @@ router.put("/update/:id",  adminCheckMiddleware, upload.single('image'), employe
 router.put("/change-password", employeeChecker, employeeCtrl.ChangePassword);
 router.put("/deactivate/:id",  adminCheckMiddleware, employeeCtrl.DeactivateEmployee)
 
-// router.get("/get-assigned-works/:id",  employeeCtrl.GetAssignedWorks)
 router.get("/get-assigned-works/:id",  employeeChecker, employeeCtrl.RetrieveWorks)
 
 router.get("/get-task-metrics/:id",  employeeChecker, employeeCtrl.GetEmployeeTaskMetrics)

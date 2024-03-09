@@ -356,7 +356,6 @@ applicationCtrl.GetApplication = async (req, res) => {
             }
         ]);
 
-        console.log("result", result)
 
         if (!result.length) return res.status(404).json({ msg: "Application doesn't exist" });
 
@@ -380,6 +379,8 @@ applicationCtrl.UpdateApplication = async (req, res) => {
         const application = await Application.findById(applicationId);
         console.log(application);
         if (!application) return res.status(404).json({ msg: "Application not found" });
+
+        if (application.phase === "completed") return res.status(404).json({ msg: "Application Completed" });
 
         const updatedApplication = await Application.findByIdAndUpdate(applicationId,
             { $set: { ...updates, updatedAt: Date.now() } },
@@ -439,6 +440,8 @@ applicationCtrl.CheckDocName = async (req, res, next) => {
 
         const application = await Application.findById(applicationId);
         if (!application) return res.status(400).json({ msg: "Application not found" })
+
+        if (application.phase === "completed") return res.status(404).json({ msg: "Application Completed" });
 
         // const docName = req.query.name;
         const docName = req.params.name;

@@ -4,6 +4,7 @@ const Stepper = require("../models/StepperModel");
 const Project = require("../models/ProjectModel");
 const Employee = require("../models/EmployeeModel");
 const Task = require("../models/TaskModel");
+const Application = require("../models/ApplicationModel");
 const ObjectId = mongoose.Types.ObjectId;
 const commentCtrl = {};
 
@@ -118,6 +119,12 @@ commentCtrl.AddComment = async (req, res) => {
             if (!StepperExists) {
                 return res.status(400).json({ msg: "Stepper doesn't exists" })
             }
+
+            const application = await Application.findById(StepperExists.applicationId)
+        if (!application) return res.status(404).json({ msg: "Application not found" })
+
+        if (application.phase === "completed") return res.status(404).json({ msg: "Application Completed" });
+
         }
         else if (resourceType === "task") {
             const taskExists = await Task.findById(resourceId);
