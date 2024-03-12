@@ -412,14 +412,9 @@ applicationCtrl.DeleteApplication = async (req, res) => {
 
         await Application.findByIdAndDelete(applicationId)
             .then(async () => {
-
-                await Comment.deleteMany({ resourceId: application._id });
-
                 await Stepper.deleteMany({ applicationId: application._id });
 
-
-                // Remove applicationId from Student and related works or delete the works
-
+                // Remove related  works
                 await Work.deleteMany({ applicationId: application._id });
 
             })

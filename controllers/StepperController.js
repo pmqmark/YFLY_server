@@ -253,7 +253,7 @@ stepCtrl.updateStepper = async (req, res) => {
 stepCtrl.DeleteAStepper = async (req, res) => {
     const stepperId = req.params.id;
 
-    if (!(typeof stepperId === 'string' || ObjectId.isValid(stepperId))) {
+    if (!mongoose.isValidObjectId(stepperId)) {
         return res.status(400).json({ msg: "Invalid Id format" });
     }
 
@@ -262,14 +262,21 @@ stepCtrl.DeleteAStepper = async (req, res) => {
         console.log(stepperDoc);
         if (!stepperDoc) return res.status(404).json({ msg: "Step not found" });
 
-        await Stepper.findByIdAndDelete(stepperDoc._id);
+        await Stepper.findByIdAndDelete(stepperDoc._id)
+        .then(async()=>{
 
-        await Application.findByIdAndUpdate(stepperDoc.applicationId, {
-            $pull: { steppers: stepperDoc._id }
+            await Application.findByIdAndUpdate(stepperDoc.applicationId, {
+                $pull: { steppers: stepperDoc._id }
+            })
+            
+            await Work.deleteMany({ stepperId: stepperDoc._id })
+    
+            await Comment.deleteMany({ resourceId: stepperDoc._id , resourceType: "stepper"})
+
         })
-
-
-        await Work.deleteMany({ stepperId: new ObjectId(stepperId) })
+        .catch((err)=>{
+            console.log(err)
+        })
 
         res.sendStatus(204)
     } catch (error) {
