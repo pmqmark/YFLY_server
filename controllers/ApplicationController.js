@@ -124,8 +124,7 @@ applicationCtrl.CreateApplication = async (req, res) => {
 
                 console.log("newWork", newWork)
 
-                const savedWork = await newWork.save();
-
+                await newWork.save();
                
             }
 

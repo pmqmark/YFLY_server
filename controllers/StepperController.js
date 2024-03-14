@@ -6,6 +6,7 @@ const partneredData = require("../datas/partnered.json");
 const nonPartneredData = require("../datas/non-partnered.json");
 const Work = require("../models/WorkModel");
 const Employee = require("../models/EmployeeModel");
+const Comment = require("../models/CommentModel");
 
 const stepCtrl = {}
 
@@ -22,14 +23,16 @@ stepCtrl.CreateAStepper = async (req, res) => {
 
         if (partnership === "partnered") {
             currentSteps = partneredData.filter((step) => {
-                return (step.country === "common" || step.country === country)
+                return (step.country === "common" || step.country === application.country)
             })
         }
         else if (partnership === "non-partnered") {
-            currentSteps = [...nonPartneredData]
+            currentSteps = nonPartneredData.filter((step) => {
+                return (step.country === "common" || step.country === application.country)
+            })
         }
 
-        if ((typeof assignee === "string" || ObjectId.isValid(assignee))) {
+        if (assignee) {
             currentSteps = currentSteps.map((step) => {
                 if (step._id === 1) {
                     return { ...step, status: "pending", assignee: new ObjectId(assignee) }
@@ -40,11 +43,12 @@ stepCtrl.CreateAStepper = async (req, res) => {
         }
 
         const newStepper = new Stepper({
-            applicationId: new ObjectId(applicationId),
+            applicationId: application._id,
             through,
             intake,
             program,
             university,
+            partnership,
             steps: currentSteps
         });
 
@@ -62,18 +66,13 @@ stepCtrl.CreateAStepper = async (req, res) => {
 
             console.log("newWork", newWork)
 
-            const savedWork = await newWork.save();
-
+            await newWork.save();
 
         }
-
 
         await Application.findByIdAndUpdate(savedStepper.applicationId, {
             $push: { steppers: savedStepper._id, intakes: intake, statuses: savedStepper?.steps[0]?.name, assignees: new ObjectId(assignee) }
         })
-
-
-
 
         res.status(200).json(savedStepper);
 
@@ -81,6 +80,96 @@ stepCtrl.CreateAStepper = async (req, res) => {
         res.status(500).json({ msg: "Something went wrong" });
     }
 
+}
+
+stepCtrl.CreateMultipleSteppers = async (req, res) => {
+    const { applicationId, uniBased, assignee } = req.body;
+
+    let steppers = [];
+    let statuses = [];
+    let intakes = [];
+    let assignees = [];
+
+    try {
+
+        const application = await Application.findById(applicationId);
+        if (!application) return res.status(404).json({ msg: "Application not found" })
+
+        if (!Array.isArray(uniBased)) {
+            return res.status(400).json({ msg: "Incomplete data about university" })
+        }
+
+        for (const obj of uniBased) {
+            let currentSteps = [];
+
+            if (obj.partnership === "partnered") {
+                currentSteps = partneredData.filter((step) => {
+                    return (step.country === "common" || step.country === application.country)
+                })
+            }
+            else if (obj.partnership === "non-partnered") {
+                currentSteps = nonPartneredData.filter((step) => {
+                    return (step.country === "common" || step.country === application.country)
+                })
+            }
+
+            if (assignee) {
+                currentSteps = currentSteps.map((step) => {
+                    if (step._id === 1) {
+                        return { ...step, status: "pending", assignee: new ObjectId(assignee) }
+                    }
+
+                    return step
+                });
+            }
+
+            const newStepper = new Stepper({
+                applicationId: application._id,
+                through: obj.through,
+                intake: obj.intake,
+                program: obj.program,
+                university: obj.university,
+                partnership: obj.partnership,
+                steps: currentSteps
+            });
+
+            const savedStepper = await newStepper.save();
+
+            steppers.push(savedStepper._id)
+
+            statuses.push(savedStepper?.steps[0]?.name)
+
+            intakes.push(obj?.intake)
+
+            assignees.push(new ObjectId(assignee))
+
+            if (assignee) {
+                const newWork = new Work({
+                    applicationId: application._id,
+                    stepperId: savedStepper._id,
+                    studentId: application.studentId,
+                    assignee: new ObjectId(assignee),
+                    stepNumber: 1,
+                    stepStatus: "pending"
+                })
+
+                console.log("newWork", newWork)
+
+                await newWork.save();
+               
+            }
+
+        }
+
+        await Application.findByIdAndUpdate(applicationId, {
+            $push: { steppers:{$each:steppers}, intakes: {$each:intakes}, statuses: {$each:statuses}, assignees: {$each: assignees} }
+        })
+
+        res.status(200).json({msg:"Added"});
+
+    } catch (error) {
+        res.status(500).json({ msg: "Something went wrong" });
+    }
 
 }
 
@@ -260,13 +349,43 @@ stepCtrl.DeleteAStepper = async (req, res) => {
     try {
         const stepperDoc = await Stepper.findById(stepperId);
         console.log(stepperDoc);
-        if (!stepperDoc) return res.status(404).json({ msg: "Step not found" });
+        if (!stepperDoc) return res.status(404).json({ msg: "Steps not found" });
+
+        const application = await Application.findById(stepperDoc.applicationId)
+        if (!application) return res.status(404).json({ msg: "Application not found" });
+
+        const firstIntakeIndex = application?.intakes.indexOf(stepperDoc.intake)
+        const altIntakes = application?.intakes.filter((el,i)=> i !== firstIntakeIndex)
+
+        const altStatuses = [...application?.statuses]
+        const altAssignees = [...application?.assignees];
+
+        for (const step of stepperDoc.steps) {
+            if ((step.status === 'pending' || step.status === 'ongoing') && step.assignee) {
+                const statusIndex = altStatuses.indexOf(step.name)
+                const assigneeindex = altAssignees.findIndex(object => object.equals(step.assignee))
+
+                console.log("altAssignees",altAssignees)
+                console.log("step.assignee",step.assignee)
+                console.log("assigneeindex",assigneeindex)
+
+                altStatuses.splice(statusIndex, 1);
+
+                if(assigneeindex !== -1){
+                    altAssignees.splice(assigneeindex, 1);
+                }
+                
+                console.log("aftr splice altAssignees",altAssignees)
+
+            }
+        }
 
         await Stepper.findByIdAndDelete(stepperDoc._id)
         .then(async()=>{
 
             await Application.findByIdAndUpdate(stepperDoc.applicationId, {
-                $pull: { steppers: stepperDoc._id }
+                $pull: { steppers: stepperDoc._id },
+                $set: {intakes: altIntakes, statuses: altStatuses, assignees: altAssignees}
             })
             
             await Work.deleteMany({ stepperId: stepperDoc._id })
