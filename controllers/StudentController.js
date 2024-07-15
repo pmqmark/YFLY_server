@@ -460,7 +460,7 @@ studentCtrl.getFollowups = async (req, res) => {
 
         let filters = {};
 
-        if (stage) {
+        if (stage && isValidObjectId(stage)) {
             filters.stage = new ObjectId(stage)
         }
 

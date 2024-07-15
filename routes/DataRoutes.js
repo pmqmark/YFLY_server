@@ -1,10 +1,9 @@
 const router = require("express").Router();
-const dataCtrl = require("../controllers/DataController")
+const dataCtrl = require("../controllers/DataController");
+const adminCheckMiddleware = require("../middlewares/adminCheckMiddleware");
 
-router.post("/label", dataCtrl.addLabel)
+router.get("/single", dataCtrl.getData)
 
-router.put("/label/:id", dataCtrl.editLabel)
-
-router.get("", dataCtrl.getData)
+router.get("", dataCtrl.getAllData)
 
 module.exports = router;

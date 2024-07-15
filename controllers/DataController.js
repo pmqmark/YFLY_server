@@ -126,24 +126,19 @@ dataCtrl.addLabel = async (req, res) => {
 dataCtrl.editLabel = async (req, res) => {
 
     try {
-        const { id } = req.params;
-        if (!mongoose.isValidObjectId(id)) { return res.status(400).json({ msg: "Invalid Id" }) }
-
-        const { list_id, label } = req.body;
+        
+        const {name, list_id, label } = req.body;
         if (!mongoose.isValidObjectId(list_id)) { return res.status(400).json({ msg: "Invalid Id" }) }
 
         if (!label?.trim()) return res.status(400).json({ msg: "Bad Request" });
 
-        const updatedDoc = await Data.findOneAndUpdate({_id: id, "list._id": list_id}, {
+        const updatedDoc = await Data.findOneAndUpdate({name: name, "list._id": list_id}, {
             $set: { "list.$.label": label }
         }, { new: true })
 
-        console.log(updatedDoc)
+        console.log({ dataxxx: updatedDoc })
 
-        result = updatedDoc
-
-
-        res.status(200).json({ data: result })
+        res.status(200).json({ data: updatedDoc })
     } catch (error) {
         console.log(error)
         res.status(500).json({ msg: "Something went wrong" })
@@ -158,6 +153,20 @@ dataCtrl.getData = async (req, res) => {
         if (!name) return res.status(400).json({ msg: "Bad Request" })
 
         const data = await Data.findOne({ name: name })
+        if (!data) return res.status(400).json({ msg: "Data Not Found" })
+        console.log(data)
+
+        res.status(200).json({ data })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: "Something went wrong" })
+    }
+}
+
+dataCtrl.getAllData = async (req, res) => {
+
+    try {
+        const data = await Data.find()
         if (!data) return res.status(400).json({ msg: "Data Not Found" })
         console.log(data)
 
