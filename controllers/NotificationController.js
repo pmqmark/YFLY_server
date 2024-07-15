@@ -1,4 +1,5 @@
 const { sendNotification } = require("../middlewares/firebaseAdmin");
+const Admin = require("../models/AdminModel");
 const Employee = require("../models/EmployeeModel");
 const Notification = require("../models/NotificationModel");
 
@@ -6,10 +7,23 @@ const notifyCtrl = {}
 
 
 notifyCtrl.saveFCMToken = async (req, res) => {
-    const { userId, token } = req.body;
-
+    
     try {
-        const user = await Employee.findById(userId);
+        const { userId, token } = req.body;
+        console.log(req.body)
+
+        const admin = await Admin.findById(userId);
+        const employee = await Employee.findById(userId);
+
+        let user;
+
+        if (admin) {
+            user = admin;
+        } else if (employee) {
+            user = employee;
+        }  else {
+            return res.status(404).json({ msg: "User not found" })
+        }
 
         if (user) {
             if (!user.fcmTokens.includes(token)) {
@@ -29,8 +43,20 @@ notifyCtrl.saveFCMToken = async (req, res) => {
 notifyCtrl.notificationSender = async (req, res) => {
     try {
         const { userId, message, notificationType } = req.body;
+        console.log(req.body)
 
-        const user = await Employee.findById(userId);
+        const admin = await Admin.findById(userId);
+        const employee = await Employee.findById(userId);
+
+        let user;
+
+        if (admin) {
+            user = admin;
+        } else if (employee) {
+            user = employee;
+        }  else {
+            return res.status(404).json({ msg: "User not found" })
+        }
 
         if (!user?.fcmTokens?.length) { return res.status(400).json({ msg: 'FCM Token not found' }); }
 

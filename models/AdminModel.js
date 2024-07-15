@@ -6,6 +6,8 @@ const AdminSchema = new mongoose.Schema({
     password:{type:String},
     image:{type:String},
     role: {type:String, default:"admin", required:true},
+    fcmTokens: { type: [String], default: [] },
+
     
 },{timestamps:true})
 
