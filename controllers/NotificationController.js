@@ -7,12 +7,12 @@ const notifyCtrl = {}
 
 
 notifyCtrl.saveFCMToken = async (req, res) => {
-    
+
     try {
         const { userId, token } = req.body;
         console.log(req.body)
 
-        if(!token?.trim()){ return res.status(400).json({ msg: "Invalid token" })}
+        if (!token?.trim()) { return res.status(400).json({ msg: "Invalid token" }) }
 
         const admin = await Admin.findById(userId);
         const employee = await Employee.findById(userId);
@@ -23,7 +23,7 @@ notifyCtrl.saveFCMToken = async (req, res) => {
             user = admin;
         } else if (employee) {
             user = employee;
-        }  else {
+        } else {
             return res.status(404).json({ msg: "User not found" })
         }
 
@@ -44,7 +44,7 @@ notifyCtrl.saveFCMToken = async (req, res) => {
 
 notifyCtrl.notificationSender = async (req, res) => {
     try {
-        const { userId, message, notificationType } = req.body;
+        const { userId, title, body, notificationType } = req.body;
         console.log(req.body)
 
         const admin = await Admin.findById(userId);
@@ -56,20 +56,23 @@ notifyCtrl.notificationSender = async (req, res) => {
             user = admin;
         } else if (employee) {
             user = employee;
-        }  else {
+        } else {
             return res.status(404).json({ msg: "User not found" })
         }
 
         if (!user?.fcmTokens?.length) { return res.status(400).json({ msg: 'FCM Token not found' }); }
 
-        const tokens = user.fcmTokens;
+        const tokens = user.fcmTokens || [];
+
 
         const payload = {
             notification: {
-                title: 'Notification Title',
-                body: message,
+                title: title,
+                body: body,
             },
+            token: tokens[0],
         };
+
 
         const response = await sendNotification(tokens, payload);
 
@@ -78,12 +81,13 @@ notifyCtrl.notificationSender = async (req, res) => {
         const createObj = {
             userId,
             notificationType,
-            message,
+            title: title,
+            body: body,
         }
 
         const notification = await Notification.create(createObj)
 
-        console.log({'saved notification': notification})
+        console.log({ 'saved notification': notification })
 
         res.status(200).json({ msg: 'Notification sent successfully' });
     } catch (error) {

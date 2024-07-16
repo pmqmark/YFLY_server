@@ -7,7 +7,9 @@ admin.initializeApp({
 
 const sendNotification = async (tokens, payload) => {
     try {
-        const response = await admin.messaging().send(tokens, payload)
+        console.log({tokens, payload})
+        const response = await admin.messaging().send(payload)
+        console.log({fAdminres: response})
         return response;
     } catch (error) {
         console.log(error)
