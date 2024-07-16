@@ -12,6 +12,8 @@ notifyCtrl.saveFCMToken = async (req, res) => {
         const { userId, token } = req.body;
         console.log(req.body)
 
+        if(!token?.trim()){ return res.status(400).json({ msg: "Invalid token" })}
+
         const admin = await Admin.findById(userId);
         const employee = await Employee.findById(userId);
 
