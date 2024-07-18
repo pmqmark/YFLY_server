@@ -88,15 +88,21 @@ notifyCtrl.notificationSender = async (req, res) => {
                 userId,
                 notificationType
             },
-            token: tokens[0],
+            token: tokens[tokens.length - 1],
         };
 
 
         const response = await sendNotification(tokens, payload);
 
-        console.log('Successfully sent message:', response);
+        if(response){
+            console.log('Successfully sent message:', response);
+    
+            res.status(200).json({ msg: 'Notification sent successfully' });
 
-        res.status(200).json({ msg: 'Notification sent successfully' });
+        }else{
+            res.status(500).json({ msg: 'Failed to sent the Notification' });
+        }
+
     } catch (error) {
         console.log(error)
         res.status(500).json({ msg: 'Failed to sent Notification' });
