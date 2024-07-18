@@ -25,5 +25,6 @@ router.put("/assign-work",  employeeChecker, employeeCtrl.WorkAssign)
 
 router.get('/notification/all/:id', employeeChecker, notifyCtrl.getUserNotifications)
 router.get('/notification/:id', employeeChecker, notifyCtrl.getSingleNotification)
+router.put('/notification/status', employeeChecker, notifyCtrl.alterReadStatus)
 
 module.exports = router;

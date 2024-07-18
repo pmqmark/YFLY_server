@@ -152,6 +152,35 @@ notifyCtrl.getUserNotifications = async(req,res)=>{
     }
 }
 
+notifyCtrl.alterReadStatus = async(req,res)=>{
+    try {
+        const {selected, status, userId} = req.body;
 
+        if(!Array.isArray(selected)){return res.status(400).json({ msg: 'Selected not an array' })}
+
+        const validArray = selected?.length && selected.every(item=> isValidObjectId(item))
+        if(!validArray) {return res.status(400).json({ msg: 'Invalid Id/s' })}
+
+        if(!['read', 'unread']?.includes(status)){return res.status(400).json({ msg: 'Invalid status' })}
+
+        const filter = {}
+        if(status === 'read'){ filter.isRead = true}
+        else if(status === 'unread'){ filter.isRead = false}
+
+        const updatedDocuments = await Notification.updateMany({_id:{$in: selected}}, 
+            {$set: filter}, {new: true}
+        )
+
+        console.log({updatedDocuments})
+        if(!updatedDocuments?.modifiedCount){ return res.status(409).json({ msg: 'Unable to update status' })}
+
+        const notifications = await Notification.find({userId})
+        
+        res.status(200).json({notification: notifications, msg:'success'})
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: 'Something went wrong' });
+    }
+}
 
 module.exports = notifyCtrl;
