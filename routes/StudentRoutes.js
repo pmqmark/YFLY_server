@@ -18,9 +18,11 @@ router.get("/get-my-applications/:id",  studentCtrl.GetAllOfMyApplications)
 
 router.put("/deactivate/:id",  adminCheckMiddleware, studentCtrl.DeactivateStudent)
 
-router.get('/followup', employeeChecker, studentCtrl.getFollowups);
-router.get('/followup/:id', employeeChecker, studentCtrl.getSingleFollowup);
-router.put('/followup/:id', employeeChecker, studentCtrl.updateFollowup);
+// router.get('/followup', employeeChecker, studentCtrl.getFollowups);
+router.get('/followup', employeeChecker, studentCtrl.getManyFollowupDocs);
+// router.get('/followup/:id', employeeChecker, studentCtrl.getSingleFollowup);
+router.get('/followup/:id', employeeChecker, studentCtrl.getOneFollowupDoc);
+router.put('/followup', employeeChecker, studentCtrl.updateFollowup);
 
 
 module.exports = router;

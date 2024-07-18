@@ -6,6 +6,7 @@ const isValidObjectId = mongoose.isValidObjectId
 const studentCtrl = {};
 const Application = require("../models/ApplicationModel");
 const Employee = require("../models/EmployeeModel");
+const Followup = require("../models/FollowupModel");
 
 //Create Student;
 
@@ -545,47 +546,209 @@ studentCtrl.getFollowups = async (req, res) => {
 
 studentCtrl.updateFollowup = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { assignee, stage, communication = [] } = req.body;
+        const {studentId, assignee, stage, communication = [], author, content } = req.body;
 
-        const updateObj = {}
+        const alterObj = {}
 
         if (assignee && isValidObjectId(assignee)) {
             const assigneeExists = await Employee.findById(assignee)
 
             if (assigneeExists) {
-                updateObj.assignee = assignee
+                alterObj.assignee = new ObjectId(assignee)
             }
         }
 
         if (stage && isValidObjectId(stage)) {
-            updateObj.stage = stage;
+            alterObj.stage = new ObjectId(stage);
         }
 
         if (communication?.length) {
             const altCommn = communication.filter((obj) => isValidObjectId(obj))
 
-            updateObj.communication = altCommn;
+            if(altCommn?.length){
+                alterObj.communication = altCommn?.map(item=> new ObjectId(item));
+            }
         }
 
-        const updatedStudent = await Student.findByIdAndUpdate(id, {
-            $set: updateObj
-        }, { new: true })
-
-        if (!updatedStudent) { return res.status(404).json({ msg: "Followup not found" }) }
-
-        const followup = {
-            _id: updatedStudent?._id,
-            name: updatedStudent?.name,
-            email: updatedStudent?.email,
-            phone: updatedStudent?.phone,
-            assignee: updatedStudent?.assignee,
-            communication: updatedStudent?.communication,
-            stage: updatedStudent?.stage,
-
+        if(isValidObjectId(author) && content?.trim()){
+            alterObj.notes= [
+                {author: new ObjectId(author), content: content?.trim()}
+            ]
         }
 
-        res.status(200).json({ msg: "Followup updated", followup })
+        // const updatedStudent = await Student.findByIdAndUpdate(id, {
+        //     $set: alterObj
+        // }, { new: true })
+
+        // if (!updatedStudent) { return res.status(404).json({ msg: "Followup not found" }) }
+
+        const student = await Student.findById(studentId);
+        if(!student) {return res.status(404).json({ msg: "Student not found" })}
+
+        const followup = await Followup.findOne({studentId: student?._id})
+
+        let theAltered;
+
+        if(followup){
+            const { notes, ...setterObj} = alterObj;
+            console.log({notes})
+            theAltered = await Followup.findByIdAndUpdate(followup?._id,
+                {$set: setterObj, $push:{notes: notes[0]}}, {new: true}
+            )
+        }else{
+            const createObj = {
+                ...alterObj,
+                studentId: student?._id
+            }
+
+            theAltered = await Followup.create(createObj)
+        }
+
+        if(!theAltered) {return res.status(404).json({ msg: "unable to update" })}
+
+        console.log({theAltered})
+
+        // const followup = {
+        //     _id: updatedStudent?._id,
+        //     name: updatedStudent?.name,
+        //     email: updatedStudent?.email,
+        //     phone: updatedStudent?.phone,
+        //     assignee: updatedStudent?.assignee,
+        //     communication: updatedStudent?.communication,
+        //     stage: updatedStudent?.stage,
+
+        // }
+
+        res.status(200).json({ msg: "Followup updated", followup: theAltered })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: 'Something went wrong' })
+    }
+}
+
+studentCtrl.getOneFollowupDoc= async(req,res)=>{
+    try {
+        const followId = req.params.id;
+
+        const followup = await Followup.findById(followId)
+        .populate('assignee', '_id name')
+        .populate('studentId', '_id name')
+        .populate('notes.author', '_id name')
+
+
+        // in frontend match the _ids in communication array with their labels in redux store
+
+
+        res.status(200).json({ followup })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: 'Something went wrong' })
+    }
+}
+
+
+studentCtrl.getManyFollowupDocs = async (req, res) => {
+    try {
+
+        const { stage } = req.query
+
+        // Paginators
+        const page = req.query.page;
+        const entries = req.query.entries;
+
+        let filters = {};
+
+        if (stage && isValidObjectId(stage)) {
+            filters.stage = new ObjectId(stage)
+        }
+
+        const followups = await Student.aggregate([
+            {
+                $lookup: {
+                    from: 'applications',
+                    localField: '_id',
+                    foreignField: 'studentId',
+                    as: 'applications'
+                }
+            },
+            {
+                $match: {
+                    'applications': { $size: 0 }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'followups',
+                    localField: '_id',
+                    foreignField: 'studentId',
+                    as: 'followups'
+                }
+            },
+            {
+                $unwind: {
+                  path: '$followups',
+                  preserveNullAndEmptyArrays: true
+                }
+              },
+            {
+                $lookup: {
+                    from: 'employees',
+                    localField: 'followups.assignee',
+                    foreignField: '_id',
+                    as: 'assigneeDetails'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'datas',
+                    let: { stageId: '$followups.stage' },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ['$name', 'stage'] } } },
+                        { $unwind: '$list' },
+                        { $match: { $expr: { $eq: ['$list._id', '$$stageId'] } } },
+                        { $project: { 'list.label': 1, 'list._id': 1 } }
+                    ],
+                    as: 'stageDetails'
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    phone: 1,
+                    email: 1,
+                    assignee: '$followups.assignee',
+                    assigneeName: { $arrayElemAt: ['$assigneeDetails.name', 0] },
+                    stage: '$followups.stage',
+                    stageName: { $arrayElemAt: ['$stageDetails.list.label', 0] },
+                    communication: '$followups.communication',
+                    followup: '$followups._id'
+                }
+            },
+
+            {
+                $match: {
+                    ...filters
+                }
+            }
+
+        ]);
+
+        console.log(followups);
+
+        // in frontend match the ObjectIds in communication array with their labels in redux store
+
+        let result = followups;
+
+        if (page) {
+            if (entries) {
+                result = result.slice(((page - 1) * entries), (page * entries))
+            } else {
+                result = result.slice(((page - 1) * 10), (page * 10))
+            }
+        }
+
+        res.status(200).json({ followups: result })
     } catch (error) {
         console.log(error)
         res.status(500).json({ msg: 'Something went wrong' })

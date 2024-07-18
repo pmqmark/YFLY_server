@@ -13,6 +13,7 @@ const sendNotification = async (tokens, payload) => {
         return response;
     } catch (error) {
         console.log(error)
+        console.log(error.code)
     }
     
 };

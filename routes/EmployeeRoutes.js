@@ -5,6 +5,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const adminCheckMiddleware = require("../middlewares/adminCheckMiddleware");
 const upload = require("../middlewares/multerToS3");
 const employeeChecker = require("../middlewares/employeeChecker");
+const notifyCtrl = require("../controllers/NotificationController");
 
 router.post("/create",  adminCheckMiddleware, upload.single('image'), employeeCtrl.CreateEmployee);
 router.get("/get-all",  employeeChecker, employeeCtrl.GetAllEmployees )
@@ -20,5 +21,10 @@ router.get("/get-task-metrics/:id",  employeeChecker, employeeCtrl.GetEmployeeTa
 router.get("/get-assigned-projects/:id",  employeeChecker, employeeCtrl.GetMyProjectTasks)
 
 router.put("/assign-work",  employeeChecker, employeeCtrl.WorkAssign)
+
+
+router.get('/notification/all/:id', employeeChecker, notifyCtrl.getUserNotifications)
+router.get('/notification/:id', employeeChecker, notifyCtrl.getSingleNotification)
+router.put('/notification/status', employeeChecker, notifyCtrl.alterReadStatus)
 
 module.exports = router;

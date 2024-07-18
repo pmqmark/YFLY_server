@@ -1,3 +1,4 @@
+const { isValidObjectId } = require("mongoose");
 const { sendNotification } = require("../middlewares/firebaseAdmin");
 const Admin = require("../models/AdminModel");
 const Employee = require("../models/EmployeeModel");
@@ -64,20 +65,6 @@ notifyCtrl.notificationSender = async (req, res) => {
 
         const tokens = user.fcmTokens || [];
 
-
-        const payload = {
-            notification: {
-                title: title,
-                body: body,
-            },
-            token: tokens[0],
-        };
-
-
-        const response = await sendNotification(tokens, payload);
-
-        console.log('Successfully sent message:', response);
-
         const createObj = {
             userId,
             notificationType,
@@ -89,7 +76,33 @@ notifyCtrl.notificationSender = async (req, res) => {
 
         console.log({ 'saved notification': notification })
 
-        res.status(200).json({ msg: 'Notification sent successfully' });
+        if(!notification) {return res.status(500).json({ msg: 'Failed to sent Notification' });}
+
+        const payload = {
+            notification: {
+                title: title,
+                body: body,
+            },
+            data: {
+                docId: String(notification?._id),
+                userId,
+                notificationType
+            },
+            token: tokens[tokens.length - 1],
+        };
+
+
+        const response = await sendNotification(tokens, payload);
+
+        if(response){
+            console.log('Successfully sent message:', response);
+    
+            res.status(200).json({ msg: 'Notification sent successfully' });
+
+        }else{
+            res.status(500).json({ msg: 'Failed to sent the Notification' });
+        }
+
     } catch (error) {
         console.log(error)
         res.status(500).json({ msg: 'Failed to sent Notification' });
@@ -98,6 +111,82 @@ notifyCtrl.notificationSender = async (req, res) => {
 }
 
 
+notifyCtrl.getSingleNotification = async(req,res)=>{
+    try {
+        const {id} = req.params;
+        if(!isValidObjectId(id)) return res.status(400).json({ msg: 'Invalid Id' })
 
+        const notification = await Notification.findById(id)
+        
+        if(!notification){ return res.status(404).json({ msg: 'Notification not found' })}
+
+        res.status(200).json({notification, msg:'success'})
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: 'Failed to fetch' });
+    }
+}
+
+notifyCtrl.getUserNotifications = async(req,res)=>{
+    try {
+        const {id} = req.params;
+        if(!isValidObjectId(id)) return res.status(400).json({ msg: 'Invalid Id' })
+
+        const filters = {userId: id}
+
+        const {readStatus, notificationType} = req.query;
+
+        if(readStatus){
+            if(readStatus === 'read'){
+                filters.isRead = true;
+            }
+            else if(readStatus === 'unread'){
+                filters.isRead = false;
+            }
+        }
+
+        if(notificationType){
+            filters.notificationType = notificationType;
+        }
+
+        const notifications = await Notification.find(filters)
+        
+        res.status(200).json({notification: notifications, msg:'success'})
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: 'Failed to fetch' });
+    }
+}
+
+notifyCtrl.alterReadStatus = async(req,res)=>{
+    try {
+        const {selected, status, userId} = req.body;
+
+        if(!Array.isArray(selected)){return res.status(400).json({ msg: 'Selected not an array' })}
+
+        const validArray = selected?.length && selected.every(item=> isValidObjectId(item))
+        if(!validArray) {return res.status(400).json({ msg: 'Invalid Id/s' })}
+
+        if(!['read', 'unread']?.includes(status)){return res.status(400).json({ msg: 'Invalid status' })}
+
+        const filter = {}
+        if(status === 'read'){ filter.isRead = true}
+        else if(status === 'unread'){ filter.isRead = false}
+
+        const updatedDocuments = await Notification.updateMany({_id:{$in: selected}}, 
+            {$set: filter}, {new: true}
+        )
+
+        console.log({updatedDocuments})
+        if(!updatedDocuments?.modifiedCount){ return res.status(409).json({ msg: 'Unable to update status' })}
+
+        const notifications = await Notification.find({userId})
+        
+        res.status(200).json({notification: notifications, msg:'success'})
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: 'Something went wrong' });
+    }
+}
 
 module.exports = notifyCtrl;

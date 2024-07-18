@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-const expiryAccessToken = "1h";
+const expiryAccessToken = "9h";
 const expiryRefreshToken = "7d";
 
 
