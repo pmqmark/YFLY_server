@@ -27,4 +27,6 @@ router.get('/notification/all/:id', employeeChecker, notifyCtrl.getUserNotificat
 router.get('/notification/:id', employeeChecker, notifyCtrl.getSingleNotification)
 router.put('/notification/status', employeeChecker, notifyCtrl.alterReadStatus)
 
+router.get("/select-employee",  employeeChecker, employeeCtrl.SelectEmployee)
+
 module.exports = router;
