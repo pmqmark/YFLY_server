@@ -20,7 +20,7 @@ router.put("/deactivate/:id",  adminCheckMiddleware, studentCtrl.DeactivateStude
 
 router.get('/followup', employeeChecker, studentCtrl.getFollowups);
 router.get('/followup/:id', employeeChecker, studentCtrl.getSingleFollowup);
-router.put('/followup/:id', employeeChecker, studentCtrl.updateFollowup);
+router.put('/followup', employeeChecker, studentCtrl.updateFollowup);
 
 
 module.exports = router;
