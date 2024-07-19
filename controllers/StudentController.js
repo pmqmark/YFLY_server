@@ -546,7 +546,7 @@ studentCtrl.getFollowups = async (req, res) => {
 
 studentCtrl.updateFollowup = async (req, res) => {
     try {
-        const {studentId, assignee, stage, communication = [], author, content } = req.body;
+        const {studentId, assignee, stage, communication, author, contents } = req.body;
 
         const alterObj = {}
 
@@ -562,25 +562,21 @@ studentCtrl.updateFollowup = async (req, res) => {
             alterObj.stage = new ObjectId(stage);
         }
 
-        if (communication?.length) {
+        if(communication?.length) {
             const altCommn = communication.filter((obj) => isValidObjectId(obj))
 
             if(altCommn?.length){
                 alterObj.communication = altCommn?.map(item=> new ObjectId(item));
             }
+        }else{
+            alterObj.communication= []
         }
 
-        if(isValidObjectId(author) && content?.trim()){
-            alterObj.notes= [
-                {author: new ObjectId(author), content: content?.trim()}
-            ]
+        if(isValidObjectId(author) && contents?.length){
+            const newNotes = contents?.map(item=> ({author: new ObjectId(author), content: item?.trim()}))
+            console.log(newNotes)
+            alterObj.notes= newNotes
         }
-
-        // const updatedStudent = await Student.findByIdAndUpdate(id, {
-        //     $set: alterObj
-        // }, { new: true })
-
-        // if (!updatedStudent) { return res.status(404).json({ msg: "Followup not found" }) }
 
         const student = await Student.findById(studentId);
         if(!student) {return res.status(404).json({ msg: "Student not found" })}
@@ -593,7 +589,7 @@ studentCtrl.updateFollowup = async (req, res) => {
             const { notes, ...setterObj} = alterObj;
             console.log({notes})
             theAltered = await Followup.findByIdAndUpdate(followup?._id,
-                {$set: setterObj, $push:{notes: notes[0]}}, {new: true}
+                {$set: setterObj, $push:{notes: notes}}, {new: true}
             )
         }else{
             const createObj = {
@@ -608,16 +604,6 @@ studentCtrl.updateFollowup = async (req, res) => {
 
         console.log({theAltered})
 
-        // const followup = {
-        //     _id: updatedStudent?._id,
-        //     name: updatedStudent?.name,
-        //     email: updatedStudent?.email,
-        //     phone: updatedStudent?.phone,
-        //     assignee: updatedStudent?.assignee,
-        //     communication: updatedStudent?.communication,
-        //     stage: updatedStudent?.stage,
-
-        // }
 
         res.status(200).json({ msg: "Followup updated", followup: theAltered })
     } catch (error) {
