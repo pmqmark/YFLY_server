@@ -8,12 +8,13 @@ const notifyCtrl = {}
 
 
 notifyCtrl.saveFCMToken = async (req, res) => {
-
     try {
         const { userId, token } = req.body;
-        console.log(req.body)
+        console.log(req.body);
 
-        if (!token?.trim()) { return res.status(400).json({ msg: "Invalid token" }) }
+        if (!token?.trim()) {
+            return res.status(400).json({ msg: "Invalid token" });
+        }
 
         const admin = await Admin.findById(userId);
         const employee = await Employee.findById(userId);
@@ -25,23 +26,28 @@ notifyCtrl.saveFCMToken = async (req, res) => {
         } else if (employee) {
             user = employee;
         } else {
-            return res.status(404).json({ msg: "User not found" })
+            return res.status(404).json({ msg: "User not found" });
         }
 
         if (user) {
+            if (!Array.isArray(user.fcmTokens)) {
+                user.fcmTokens = [];
+            }
+
             if (!user.fcmTokens.includes(token)) {
                 user.fcmTokens.push(token);
                 await user.save();
             }
-            res.status(200).json({ msg: 'success' });
+            res.status(200).json({ msg: 'Success' });
         } else {
             res.status(404).json({ msg: 'User not found' });
         }
     } catch (error) {
-        console.log(error)
+        console.log(error);
         res.status(500).json({ msg: 'Error saving token' });
     }
-}
+};
+
 
 notifyCtrl.notificationSender = async (req, res) => {
     try {
