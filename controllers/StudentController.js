@@ -731,7 +731,7 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
 
         // in frontend match the ObjectIds in communication array with their labels in redux store
 
-        let result = followups;
+        let result = followups?.reverse();
 
         if (page) {
             if (entries) {
