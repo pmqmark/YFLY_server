@@ -67,10 +67,7 @@ notifyCtrl.notificationSender = async (req, res) => {
             return res.status(404).json({ msg: "User not found" })
         }
 
-        if (!user?.fcmTokens?.length) { return res.status(400).json({ msg: 'FCM Token not found' }); }
-
-        const tokens = user.fcmTokens || [];
-
+        
         const createObj = {
             userId,
             notificationType,
@@ -83,7 +80,12 @@ notifyCtrl.notificationSender = async (req, res) => {
 
         console.log({ 'saved notification': notification })
 
-        if(!notification) {return res.status(500).json({ msg: 'Failed to sent Notification' });}
+        if(!notification) {return res.status(500).json({ msg: 'Failed to save notification' });}
+
+
+        // Live Notification sending part
+        const tokens = user?.fcmTokens ;
+        if (!(Array.isArray(tokens) && tokens?.length)) { return res.status(400).json({ msg: 'FCM Token not found' }); }
 
         const payload = {
             notification: {
