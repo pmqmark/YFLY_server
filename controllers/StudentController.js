@@ -14,7 +14,7 @@ studentCtrl.CreateStudent = async (req, res) => {
 
     const { name, email, password, phone,
         birthDate, age, qualification,
-        address, office , enquiryRoute} = req.body;
+        address, office, enquiryRoute, assignee } = req.body;
 
     console.log(req.body);
     console.log("address", req.body.address);
@@ -54,8 +54,21 @@ studentCtrl.CreateStudent = async (req, res) => {
             qualification, address, image, office, enquiryRoute
         });
 
-        const savedDoc = await newDocument.save();
-        console.log("Saved Student", savedDoc);
+        const student = await newDocument.save();
+        console.log("Saved Student", student);
+
+        if (!student) { return res.status(400).json({ msg: 'Failed to register' }) }
+
+        if (assignee) {
+            const createObj = {
+                assignee: new ObjectId(assignee),
+                studentId: student?._id
+            }
+
+            const followupDoc = await Followup.create(createObj)
+            console.log({ followupDoc })
+        }
+
 
         res.status(200).json({ msg: "New Student created" })
     } catch (error) {
@@ -69,7 +82,6 @@ studentCtrl.CreateStudent = async (req, res) => {
 studentCtrl.GetAllStudents = async (req, res) => {
     const name = req.query.name;
     const office = req.query.office;
-    const qualification = req.query.qualification;
     const appstatus = req.query.appstatus;
 
     //search query;
@@ -81,10 +93,9 @@ studentCtrl.GetAllStudents = async (req, res) => {
 
     const ORArray = [
         { name: { $regex: new RegExp(searchQuery, "i") } },
-    { email: { $regex: new RegExp(searchQuery, "i") } },
-    { qualification: { $regex: new RegExp(searchQuery, "i") } },
-    { enquiryRoute: { $regex: new RegExp(searchQuery, "i") } },
-];
+        { email: { $regex: new RegExp(searchQuery, "i") } },
+        { enquiryRoute: { $regex: new RegExp(searchQuery, "i") } },
+    ];
 
     if (ObjectId.isValid(searchQuery)) {
         ORArray.push({ _id: new ObjectId(searchQuery) }, { applicationId: new ObjectId(searchQuery) })
@@ -94,13 +105,12 @@ studentCtrl.GetAllStudents = async (req, res) => {
         $or: [...ORArray],
         name: { $regex: new RegExp(name, "i") },
         office: { $regex: new RegExp(office, "i") },
-        qualification: { $regex: new RegExp(qualification, "i") },
         isActive: true,
     }
 
     if (appstatus) {
         const applications = await Application.find({}, { _id: 0, studentId: 1 })
-        const appliedStudents = applications.map((app) => app.studentId)
+        const appliedStudents = applications.map((app) => isValidObjectId(app.studentId) && new ObjectId(app.studentId) )
 
         if (appstatus === 'present') {
 
@@ -113,11 +123,66 @@ studentCtrl.GetAllStudents = async (req, res) => {
         }
     }
 
-    // console.log("filters", filters)
-
     try {
-        const allStudents = await Student.find({ ...filters }, { password: 0 });
-        // console.log(allStudents);
+
+        const allStudents = await Student.aggregate([
+            {
+                $lookup: {
+                    from: 'followups',
+                    as: 'followupdoc',
+                    foreignField: 'studentId',
+                    localField: '_id'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$followupdoc',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $lookup: {
+                    from: 'employees',
+                    as: 'assigneeDoc',
+                    foreignField: '_id',
+                    localField: 'followupdoc.assignee'
+                }
+            },
+
+            {
+                $unwind: {
+                    path: '$assigneeDoc',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $match: { ...filters }
+            },
+
+            {
+                $project: {
+                    name: '$name',
+                    email: '$email',
+                    phone: '$phone',
+                    birthDate: '$birthDate',
+                    address: '$address',
+                    role: '$role',
+                    office: '$office',
+                    enquiryRoute: '$enquiryRoute',
+                    assigneeName: '$assigneeDoc.name',
+                    assigneeId: '$assigneeDoc._id',
+                }
+            },
+
+            {
+                $sort: {
+                    createdAt: -1,
+                }
+            }
+
+        ])
 
         let result = allStudents.reverse();
 
@@ -163,7 +228,7 @@ studentCtrl.GetStudent = async (req, res) => {
 studentCtrl.UpdateStudent = async (req, res) => {
     console.log(req.body);
     const studentId = req.params.id;
-    const updates = req.body;
+    const { assigneeId, ...updates } = req.body;
 
     if (!(typeof studentId === 'string' || ObjectId.isValid(studentId))) {
         return res.status(400).json({ msg: "Invalid Id format" });
@@ -198,11 +263,28 @@ studentCtrl.UpdateStudent = async (req, res) => {
 
         console.log("updates", updates);
 
-        const updatedDocument = await Student.findByIdAndUpdate(studentId, {
+        const updatedStudent = await Student.findByIdAndUpdate(studentId, {
             $set: updates
         }, { new: true });
 
-        console.log("updatedDoc", updatedDocument)
+        console.log("updatedDoc", updatedStudent)
+
+        if (assigneeId) {
+            const followup = await Followup.findOne({ studentId: updatedStudent?._id })
+
+            if (followup) {
+                await Followup.findByIdAndUpdate(followup?._id,
+                    { $set: {assignee : new ObjectId(assigneeId)} }, { new: true }
+                )
+            } else {
+                const createObj = {
+                    assignee: new ObjectId(assigneeId),
+                    studentId: student?._id
+                }
+
+                await Followup.create(createObj)
+            }
+        }
 
         res.status(200).json({ msg: "Student Updated" });
 
@@ -549,7 +631,7 @@ studentCtrl.getFollowups = async (req, res) => {
 
 studentCtrl.updateFollowup = async (req, res) => {
     try {
-        const {studentId, assignee, stage, communication, author, contents } = req.body;
+        const { studentId, assignee, stage, communication, author, contents } = req.body;
 
         const alterObj = {}
 
@@ -565,36 +647,36 @@ studentCtrl.updateFollowup = async (req, res) => {
             alterObj.stage = new ObjectId(stage);
         }
 
-        if(communication?.length) {
+        if (communication?.length) {
             const altCommn = communication.filter((obj) => isValidObjectId(obj))
 
-            if(altCommn?.length){
-                alterObj.communication = altCommn?.map(item=> new ObjectId(item));
+            if (altCommn?.length) {
+                alterObj.communication = altCommn?.map(item => new ObjectId(item));
             }
-        }else{
-            alterObj.communication= []
+        } else {
+            alterObj.communication = []
         }
 
-        if(isValidObjectId(author) && contents?.length){
-            const newNotes = contents?.map(item=> ({author: new ObjectId(author), content: item?.trim()}))
+        if (isValidObjectId(author) && contents?.length) {
+            const newNotes = contents?.map(item => ({ author: new ObjectId(author), content: item?.trim() }))
             console.log(newNotes)
-            alterObj.notes= newNotes
+            alterObj.notes = newNotes
         }
 
         const student = await Student.findById(studentId);
-        if(!student) {return res.status(404).json({ msg: "Student not found" })}
+        if (!student) { return res.status(404).json({ msg: "Student not found" }) }
 
-        const followup = await Followup.findOne({studentId: student?._id})
+        const followup = await Followup.findOne({ studentId: student?._id })
 
         let theAltered;
 
-        if(followup){
-            const { notes, ...setterObj} = alterObj;
-            console.log({notes})
+        if (followup) {
+            const { notes, ...setterObj } = alterObj;
+            console.log({ notes })
             theAltered = await Followup.findByIdAndUpdate(followup?._id,
-                {$set: setterObj, $push:{notes: notes}}, {new: true}
+                { $set: setterObj, $push: { notes: notes } }, { new: true }
             )
-        }else{
+        } else {
             const createObj = {
                 ...alterObj,
                 studentId: student?._id
@@ -603,9 +685,9 @@ studentCtrl.updateFollowup = async (req, res) => {
             theAltered = await Followup.create(createObj)
         }
 
-        if(!theAltered) {return res.status(404).json({ msg: "unable to update" })}
+        if (!theAltered) { return res.status(404).json({ msg: "unable to update" }) }
 
-        console.log({theAltered})
+        console.log({ theAltered })
 
 
         res.status(200).json({ msg: "Followup updated", followup: theAltered })
@@ -615,14 +697,14 @@ studentCtrl.updateFollowup = async (req, res) => {
     }
 }
 
-studentCtrl.getOneFollowupDoc= async(req,res)=>{
+studentCtrl.getOneFollowupDoc = async (req, res) => {
     try {
         const followId = req.params.id;
 
         const followup = await Followup.findById(followId)
-        .populate('assignee', '_id name')
-        .populate('studentId', '_id name')
-        .populate('notes.author', '_id name')
+            .populate('assignee', '_id name')
+            .populate('studentId', '_id name')
+            .populate('notes.author', '_id name')
 
 
         // in frontend match the _ids in communication array with their labels in redux store
@@ -639,7 +721,7 @@ studentCtrl.getOneFollowupDoc= async(req,res)=>{
 studentCtrl.getManyFollowupDocs = async (req, res) => {
     try {
 
-        const { stage , assignee} = req.query
+        const { stage, assignee } = req.query
 
         // Paginators
         const page = req.query.page;
@@ -679,10 +761,10 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
             },
             {
                 $unwind: {
-                  path: '$followups',
-                  preserveNullAndEmptyArrays: true
+                    path: '$followups',
+                    preserveNullAndEmptyArrays: true
                 }
-              },
+            },
             {
                 $lookup: {
                     from: 'employees',
