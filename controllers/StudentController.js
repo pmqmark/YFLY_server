@@ -110,7 +110,7 @@ studentCtrl.GetAllStudents = async (req, res) => {
 
     if (appstatus) {
         const applications = await Application.find({}, { _id: 0, studentId: 1 })
-        const appliedStudents = applications.map((app) => isValidObjectId(app.studentId) && new ObjectId(app.studentId) )
+        const appliedStudents = applications.map((app) => isValidObjectId(app.studentId) && new ObjectId(app.studentId))
 
         if (appstatus === 'present') {
 
@@ -274,7 +274,7 @@ studentCtrl.UpdateStudent = async (req, res) => {
 
             if (followup) {
                 await Followup.findByIdAndUpdate(followup?._id,
-                    { $set: {assignee : new ObjectId(assigneeId)} }, { new: true }
+                    { $set: { assignee: new ObjectId(assigneeId) } }, { new: true }
                 )
             } else {
                 const createObj = {
@@ -827,6 +827,42 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
     } catch (error) {
         console.log(error)
         res.status(500).json({ msg: 'Something went wrong' })
+    }
+}
+
+
+studentCtrl.GetNamesOfAllStudents = async (req, res) => {
+    const name = req.query.name;
+
+    // Paginators
+    const page = req.query.page;
+    const entries = req.query.entries;
+
+    const filters = {
+        isActive: true,
+    }
+
+    if (name) { filters.name = { $regex: new RegExp(name, "i") } }
+
+    try {
+
+        const allStudents = await Student.find(filters, {_id:1, name:1})
+
+        let result = allStudents.sort((a,b)=> a?.name?.trim().localeCompare(b?.name?.trim()))
+
+        if (page) {
+            if (entries) {
+                result = result.slice(((page - 1) * entries), (page * entries))
+            } else {
+                result = result.slice(((page - 1) * 10), (page * 10))
+            }
+        }
+
+
+        res.status(200).json({result});
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ msg: "Something went wrong" });
     }
 }
 

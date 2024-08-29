@@ -24,5 +24,6 @@ router.get('/followup', employeeChecker, studentCtrl.getManyFollowupDocs);
 router.get('/followup/:id', employeeChecker, studentCtrl.getOneFollowupDoc);
 router.put('/followup', employeeChecker, studentCtrl.updateFollowup);
 
+router.get("/names",  employeeChecker, studentCtrl.GetNamesOfAllStudents )
 
 module.exports = router;
