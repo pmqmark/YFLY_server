@@ -722,12 +722,18 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
     try {
 
         const { stage, assignee } = req.query
+        const searchQuery = req.query.search;
 
         // Paginators
         const page = req.query.page;
         const entries = req.query.entries;
 
-        let filters = {};
+        const ORArray = [
+            { name: { $regex: new RegExp(searchQuery, "i") } },
+            { email: { $regex: new RegExp(searchQuery, "i") } },
+        ];
+    
+        const filters = {$or: [...ORArray], isActive: true};
 
         if (stage && isValidObjectId(stage)) {
             filters.stage = new ObjectId(stage)
@@ -792,6 +798,7 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
                     name: 1,
                     phone: 1,
                     email: 1,
+                    isActive: 1,
                     assignee: '$followups.assignee',
                     assigneeName: { $arrayElemAt: ['$assigneeDetails.name', 0] },
                     stage: '$followups.stage',
@@ -808,8 +815,6 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
             }
 
         ]);
-
-        // console.log(followups);
 
         // in frontend match the ObjectIds in communication array with their labels in redux store
 

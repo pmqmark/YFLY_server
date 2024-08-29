@@ -18,9 +18,7 @@ router.get("/get-my-applications/:id",  studentCtrl.GetAllOfMyApplications)
 
 router.put("/deactivate/:id",  employeeChecker, studentCtrl.DeactivateStudent)
 
-// router.get('/followup', employeeChecker, studentCtrl.getFollowups);
 router.get('/followup', employeeChecker, studentCtrl.getManyFollowupDocs);
-// router.get('/followup/:id', employeeChecker, studentCtrl.getSingleFollowup);
 router.get('/followup/:id', employeeChecker, studentCtrl.getOneFollowupDoc);
 router.put('/followup', employeeChecker, studentCtrl.updateFollowup);
 
