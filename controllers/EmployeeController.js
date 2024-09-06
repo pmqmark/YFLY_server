@@ -320,6 +320,7 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
                     'university': '$stepperDetails.university',
                     'program': '$stepperDetails.program',
                     'intake': '$stepperDetails.intake',
+                    'step': {$arrayElemAt : ['$stepperDetails.steps', { $subtract: ['$stepNumber', 1] }]}
                 }
             },
             {
@@ -334,6 +335,7 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
                     'stepperId': 1,
                     'stepNumber': 1,
                     'stepStatus': 1,
+                    'step': 1,
                 }
             }
 
