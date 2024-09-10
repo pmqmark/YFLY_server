@@ -320,6 +320,7 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
                     'university': '$stepperDetails.university',
                     'program': '$stepperDetails.program',
                     'intake': '$stepperDetails.intake',
+                    'step': {$arrayElemAt : ['$stepperDetails.steps', { $subtract: ['$stepNumber', 1] }]}
                 }
             },
             {
@@ -334,6 +335,7 @@ employeeCtrl.RetrieveWorks = async (req, res) => {
                     'stepperId': 1,
                     'stepNumber': 1,
                     'stepStatus': 1,
+                    'step': 1,
                 }
             }
 
@@ -500,7 +502,7 @@ employeeCtrl.WorkAssign = async (req, res) => {
 
 employeeCtrl.SelectEmployee = async (req, res) => {
     try {
-        const employee = await Employee.find({ department: { $in: ["counselling", "registration"] } });
+        const employee = await Employee.find({ department: { $in: ["counselling", "registration"] } }, {_id:1, name:1});
         // console.log(employee)
 
         if (!employee) return res.status(404).json({ msg: "Employee Not Found" });
