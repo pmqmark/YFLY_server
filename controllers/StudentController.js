@@ -925,6 +925,7 @@ studentCtrl.getManyFollowupDocs = async (req, res) => {
           stageName: { $arrayElemAt: ["$stageDetails.list.label", 0] },
           communication: "$followups.communication",
           followup: "$followups._id",
+          status: "$followups.status",
         },
       },
 
