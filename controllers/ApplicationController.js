@@ -161,6 +161,8 @@ applicationCtrl.GetAllApplications = async (req, res) => {
   const intake = req.query.intake;
   const startDateQuery = req.query.start_date;
   const endDateQuery = req.query.end_date;
+  const deadlineStartQuery = req.query.deadline_start;
+  const deadlineEndQuery = req.query.deadline_end;
 
   let status;
   if (req.query.status) {
@@ -210,6 +212,12 @@ applicationCtrl.GetAllApplications = async (req, res) => {
     filters.createdAt = { $gte: startDate, $lte: endDate };
   }
 
+  if (deadlineStartQuery && deadlineEndQuery) {
+    const deadlineStart = new Date(`${deadlineStartQuery}T00:00:00.000+05:30`);
+    const deadlineEnd = new Date(`${deadlineEndQuery}T00:00:00.000+05:30`);
+    filters.deadline = { $gte: deadlineStart, $lte: deadlineEnd };
+  }
+
   // console.log(filters);
 
   try {
@@ -257,6 +265,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
           statuses: { $first: "$statuses" },
           createdAt: { $first: "$createdAt" },
           updatedAt: { $first: "$updatedAt" },
+          deadline: { $first: "$deadline" },
           assignees: { $first: "$assignees" },
           phase: { $first: "$phase" },
           studentName: { $first: "$studentDetails.name" },
@@ -276,6 +285,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
           statuses: 1,
           createdAt: 1,
           updatedAt: 1,
+          deadline: 1,
           assignees: 1,
           studentName: 1,
           assigneeNames: 1,
@@ -364,6 +374,7 @@ applicationCtrl.GetApplication = async (req, res) => {
           documents: 1,
           createdAt: 1,
           updatedAt: 1,
+          deadline: 1,
           studentName: "$student.name",
           assignee: "$assignee.name",
           steppers: 1,
@@ -398,6 +409,14 @@ applicationCtrl.UpdateApplication = async (req, res) => {
 
     if (application.phase === "completed")
       return res.status(404).json({ msg: "Application Completed" });
+
+    if (updates.deadline) {
+      const parsed = new Date(updates.deadline);
+      if (isNaN(parsed.valueOf())) {
+        return res.status(400).json({ msg: "Invalid deadline format" });
+      }
+      updates.deadline = parsed;
+    }
 
     const updatedApplication = await Application.findByIdAndUpdate(
       applicationId,

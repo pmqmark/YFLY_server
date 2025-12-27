@@ -6,6 +6,7 @@ const adminCheckMiddleware = require("../middlewares/adminCheckMiddleware");
 const upload = require("../middlewares/multerToS3");
 const uploadDO = require("../middlewares/multerToDO");
 const employeeChecker = require("../middlewares/employeeChecker");
+const notifyCtrl = require("../controllers/NotificationController");
 
 router.post(
   "/create",
@@ -60,5 +61,18 @@ router.delete(
 );
 
 router.get("/names", employeeChecker, studentCtrl.GetNamesOfAllStudents);
+
+// Notification routes for students
+router.get(
+  "/notification/all/:id",
+  authMiddleware,
+  notifyCtrl.getUserNotifications
+);
+router.get(
+  "/notification/:id",
+  authMiddleware,
+  notifyCtrl.getSingleNotification
+);
+router.put("/notification/status", authMiddleware, notifyCtrl.alterReadStatus);
 
 module.exports = router;
