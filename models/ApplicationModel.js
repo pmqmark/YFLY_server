@@ -26,6 +26,7 @@ const ApplicationSchema = new mongoose.Schema(
       default: [],
     },
     deadline: { type: Date, default: null },
+    tutionFee: { type: Boolean, default: false },
     phase: { type: String, default: "pending" },
   },
   { timestamps: true }
