@@ -267,6 +267,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
           updatedAt: { $first: "$updatedAt" },
           deadline: { $first: "$deadline" },
           assignees: { $first: "$assignees" },
+          tutionFee: { $first: "$tutionFee" },
           phase: { $first: "$phase" },
           studentName: { $first: "$studentDetails.name" },
           assigneeNames: { $push: "$assigneeDetails.name" },
@@ -290,6 +291,7 @@ applicationCtrl.GetAllApplications = async (req, res) => {
           studentName: 1,
           assigneeNames: 1,
           assigneePhones: 1,
+          tutionFee: 1,
           phase: 1,
         },
       },
@@ -378,6 +380,7 @@ applicationCtrl.GetApplication = async (req, res) => {
           studentName: "$student.name",
           assignee: "$assignee.name",
           steppers: 1,
+          tutionFee: 1,
           phase: 1,
         },
       },
@@ -750,6 +753,59 @@ applicationCtrl.PhaseChange = async (req, res) => {
     });
 
     res.status(200).json({ msg: "Application State changed" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "Something went wrong" });
+  }
+};
+
+applicationCtrl.UpdateTutionFee = async (req, res) => {
+  const applicationId = req.params.id;
+
+  try {
+    if (
+      !(typeof applicationId === "string" || ObjectId.isValid(applicationId))
+    ) {
+      return res.status(400).json({ msg: "Invalid Id format" });
+    }
+
+    const application = await Application.findById(applicationId);
+    if (!application)
+      return res.status(404).json({ msg: "Application not found" });
+
+    let boolValue;
+
+    if (req.body.hasOwnProperty("tutionFee")) {
+      const v = req.body.tutionFee;
+      if (typeof v === "boolean") boolValue = v;
+      else if (typeof v === "string") {
+        if (v.toLowerCase() === "yes") boolValue = true;
+        else if (v.toLowerCase() === "no") boolValue = false;
+        else return res.status(400).json({ msg: "Invalid tutionFee value" });
+      } else {
+        return res.status(400).json({ msg: "Invalid tutionFee value" });
+      }
+    } else if (req.body.value !== undefined) {
+      const v = req.body.value;
+      if (typeof v === "boolean") boolValue = v;
+      else if (typeof v === "string") {
+        if (v.toLowerCase() === "yes") boolValue = true;
+        else if (v.toLowerCase() === "no") boolValue = false;
+        else return res.status(400).json({ msg: "Invalid value" });
+      } else {
+        return res.status(400).json({ msg: "Invalid value" });
+      }
+    } else {
+      return res.status(400).json({ msg: "Missing tutionFee value" });
+    }
+
+    await Application.findByIdAndUpdate(application._id, {
+      $set: { tutionFee: boolValue },
+    });
+
+    res
+      .status(200)
+      .json({ msg: "Tution fee updated", tutionFee: boolValue ? "yes" : "no" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "Something went wrong" });

@@ -31,5 +31,6 @@ router.put(
 );
 
 router.put("/phase-change/:id", employeeChecker, applicationCtrl.PhaseChange);
+router.put("/tution-fee/:id", employeeChecker, applicationCtrl.UpdateTutionFee);
 
 module.exports = router;
