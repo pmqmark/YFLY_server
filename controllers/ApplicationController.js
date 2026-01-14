@@ -161,6 +161,8 @@ applicationCtrl.GetAllApplications = async (req, res) => {
   const intake = req.query.intake;
   const startDateQuery = req.query.start_date;
   const endDateQuery = req.query.end_date;
+  const deadlineStartQuery = req.query.deadline_start;
+  const deadlineEndQuery = req.query.deadline_end;
 
   let status;
   if (req.query.status) {
@@ -210,6 +212,12 @@ applicationCtrl.GetAllApplications = async (req, res) => {
     filters.createdAt = { $gte: startDate, $lte: endDate };
   }
 
+  if (deadlineStartQuery && deadlineEndQuery) {
+    const deadlineStart = new Date(`${deadlineStartQuery}T00:00:00.000+05:30`);
+    const deadlineEnd = new Date(`${deadlineEndQuery}T00:00:00.000+05:30`);
+    filters.deadline = { $gte: deadlineStart, $lte: deadlineEnd };
+  }
+
   // console.log(filters);
 
   try {
@@ -257,7 +265,9 @@ applicationCtrl.GetAllApplications = async (req, res) => {
           statuses: { $first: "$statuses" },
           createdAt: { $first: "$createdAt" },
           updatedAt: { $first: "$updatedAt" },
+          deadline: { $first: "$deadline" },
           assignees: { $first: "$assignees" },
+          tutionFee: { $first: "$tutionFee" },
           phase: { $first: "$phase" },
           studentName: { $first: "$studentDetails.name" },
           assigneeNames: { $push: "$assigneeDetails.name" },
@@ -276,10 +286,12 @@ applicationCtrl.GetAllApplications = async (req, res) => {
           statuses: 1,
           createdAt: 1,
           updatedAt: 1,
+          deadline: 1,
           assignees: 1,
           studentName: 1,
           assigneeNames: 1,
           assigneePhones: 1,
+          tutionFee: 1,
           phase: 1,
         },
       },
@@ -364,9 +376,11 @@ applicationCtrl.GetApplication = async (req, res) => {
           documents: 1,
           createdAt: 1,
           updatedAt: 1,
+          deadline: 1,
           studentName: "$student.name",
           assignee: "$assignee.name",
           steppers: 1,
+          tutionFee: 1,
           phase: 1,
         },
       },
@@ -398,6 +412,14 @@ applicationCtrl.UpdateApplication = async (req, res) => {
 
     if (application.phase === "completed")
       return res.status(404).json({ msg: "Application Completed" });
+
+    if (updates.deadline) {
+      const parsed = new Date(updates.deadline);
+      if (isNaN(parsed.valueOf())) {
+        return res.status(400).json({ msg: "Invalid deadline format" });
+      }
+      updates.deadline = parsed;
+    }
 
     const updatedApplication = await Application.findByIdAndUpdate(
       applicationId,
@@ -731,6 +753,59 @@ applicationCtrl.PhaseChange = async (req, res) => {
     });
 
     res.status(200).json({ msg: "Application State changed" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "Something went wrong" });
+  }
+};
+
+applicationCtrl.UpdateTutionFee = async (req, res) => {
+  const applicationId = req.params.id;
+
+  try {
+    if (
+      !(typeof applicationId === "string" || ObjectId.isValid(applicationId))
+    ) {
+      return res.status(400).json({ msg: "Invalid Id format" });
+    }
+
+    const application = await Application.findById(applicationId);
+    if (!application)
+      return res.status(404).json({ msg: "Application not found" });
+
+    let boolValue;
+
+    if (req.body.hasOwnProperty("tutionFee")) {
+      const v = req.body.tutionFee;
+      if (typeof v === "boolean") boolValue = v;
+      else if (typeof v === "string") {
+        if (v.toLowerCase() === "yes") boolValue = true;
+        else if (v.toLowerCase() === "no") boolValue = false;
+        else return res.status(400).json({ msg: "Invalid tutionFee value" });
+      } else {
+        return res.status(400).json({ msg: "Invalid tutionFee value" });
+      }
+    } else if (req.body.value !== undefined) {
+      const v = req.body.value;
+      if (typeof v === "boolean") boolValue = v;
+      else if (typeof v === "string") {
+        if (v.toLowerCase() === "yes") boolValue = true;
+        else if (v.toLowerCase() === "no") boolValue = false;
+        else return res.status(400).json({ msg: "Invalid value" });
+      } else {
+        return res.status(400).json({ msg: "Invalid value" });
+      }
+    } else {
+      return res.status(400).json({ msg: "Missing tutionFee value" });
+    }
+
+    await Application.findByIdAndUpdate(application._id, {
+      $set: { tutionFee: boolValue },
+    });
+
+    res
+      .status(200)
+      .json({ msg: "Tution fee updated", tutionFee: boolValue ? "yes" : "no" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "Something went wrong" });
